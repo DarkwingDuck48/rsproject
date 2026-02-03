@@ -1,0 +1,13 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+logic = {path = "../logic"}
+serde = {workspace = true}
+serde_json = {workspace = true}
+anyhow = {workspace = true}
+thiserror = {workspace = true}
+chrono = {workspace = true}
