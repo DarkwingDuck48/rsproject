@@ -14,20 +14,44 @@ pub enum TaskStatus {
     Closed,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum DependencyType {
+    Blocking,
+    NonBlocking,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub struct EngagementRate(f64);
+
+impl EngagementRate {
+    pub fn new(rate: f64) -> anyhow::Result<Self> {
+        if (0.0..=1.0).contains(&rate) {
+            Ok(Self(rate))
+        } else {
+            Err(anyhow::Error::msg(
+                "Engagement rate must be between 0 and 1",
+            ))
+        }
+    }
+    pub fn value(&self) -> f64 {
+        self.0
+    }
+}
+
 /// Показывает процент, на который занят конкретный ресурс на конкретной задаче.
 /// Из этого показателя сможем получить денежный эквивалент затрат ресурса на задачу, умножив ставку на занятость
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ResourceOnTask {
     resource: Uuid,
-    engagement_rate: f64,
+    engagement_rate: EngagementRate,
 }
 
 impl ResourceOnTask {
-    pub fn new(id: Uuid, rate: f64) -> Self {
-        Self {
+    pub fn new(id: Uuid, rate: f64) -> anyhow::Result<Self> {
+        Ok(Self {
             resource: id,
-            engagement_rate: rate,
-        }
+            engagement_rate: EngagementRate::new(rate)?,
+        })
     }
 }
 
@@ -46,6 +70,9 @@ pub enum DependencyNodeType {
 ///
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Dependency {
+    from_task: Uuid,
+    to_task: Uuid,
+    dependency_type: Option<DependencyType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     prev_task: Option<Vec<Uuid>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -135,7 +162,6 @@ impl Dependency {
 pub struct Task {
     pub id: Uuid,
     pub name: String,
-    pub dependency: Dependency,
     pub date_start: DateTime<Utc>,
     pub date_end: DateTime<Utc>,
     pub duration: TimeDelta,

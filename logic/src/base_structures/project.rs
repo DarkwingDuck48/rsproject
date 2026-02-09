@@ -26,8 +26,15 @@ impl Project {
         desc: impl Into<String>,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
-    ) -> Self {
-        Self {
+    ) -> anyhow::Result<Self> {
+        if start > end {
+            return Err(anyhow::Error::msg(format!(
+                "Start date of project later than End Date: {}>{}",
+                start, end
+            )));
+        }
+
+        Ok(Self {
             id: Uuid::new_v4(),
             name: name.into(),
             description: desc.into(),
@@ -95,12 +102,11 @@ impl Project {
 
     /// Task management
     /// Add new task to project
-    pub fn add_task(mut self, task: Task) -> Self {
+    pub fn add_task(&mut self, task: Task) -> anyhow::Result<()> {
         if self.check_new_task(&task) && self.validate_dependent_tasks_exists(&task) {
             println!("Add new task {:?}", &task.name);
             self.tasks.insert(task.id, task);
         }
-        self
     }
     /// Delete existing task from project
     pub fn delete_task(mut self, task_id: &Uuid) -> Self {
