@@ -11,3 +11,4 @@ serde_json = {workspace = true}
 anyhow = {workspace = true}
 thiserror = {workspace = true}
 chrono = {workspace = true}
+uuid = {version = "1.20.0", features = ["v4", "serde"]}
