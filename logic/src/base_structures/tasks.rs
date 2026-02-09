@@ -20,27 +20,45 @@ pub enum DependencyType {
     NonBlocking,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub struct EngagementRate(f64);
+
+impl EngagementRate {
+    pub fn new(rate: f64) -> anyhow::Result<Self> {
+        if (0.0..=1.0).contains(&rate) {
+            Ok(Self(rate))
+        } else {
+            Err(anyhow::Error::msg(
+                "Engagement rate must be between 0 and 1",
+            ))
+        }
+    }
+    pub fn value(&self) -> f64 {
+        self.0
+    }
+}
+
 /// Показывает процент, на который занят конкретный ресурс на конкретной задаче.
 /// Из этого показателя сможем получить денежный эквивалент затрат ресурса на задачу, умножив ставку на занятость
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ResourceOnTask {
     resource: Uuid,
-    engagement_rate: f64,
+    engagement_rate: EngagementRate,
 }
 
 impl ResourceOnTask {
-    pub fn new(id: Uuid, rate: f64) -> Self {
-        Self {
+    pub fn new(id: Uuid, rate: f64) -> anyhow::Result<Self> {
+        Ok(Self {
             resource: id,
-            engagement_rate: rate,
-        }
+            engagement_rate: EngagementRate::new(rate)?,
+        })
     }
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Dependency {
-    prev_task: Option<Uuid>,
-    next_task: Option<Uuid>,
+    from_task: Uuid,
+    to_task: Uuid,
     dependency_type: Option<DependencyType>,
 }
 
@@ -48,7 +66,6 @@ pub struct Dependency {
 pub struct Task {
     pub id: Uuid,
     pub name: String,
-    pub dependency: Dependency,
     pub date_start: DateTime<Utc>,
     pub date_end: DateTime<Utc>,
     pub duration: TimeDelta,
@@ -59,7 +76,6 @@ pub struct Task {
 impl Task {
     pub fn new(
         name: impl Into<String>,
-        depend: Option<Dependency>,
         date_start: DateTime<Utc>,
         date_end: DateTime<Utc>,
         resources: Option<Vec<ResourceOnTask>>,
@@ -74,7 +90,6 @@ impl Task {
         Ok(Self {
             id: Uuid::new_v4(),
             name: name.into(),
-            dependency: depend.unwrap_or_default(),
             date_start,
             date_end,
             resources: resources.unwrap_or_default(),
@@ -94,7 +109,7 @@ mod tests {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 2, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
 
-        let task = Task::new("Test", None, date_start, date_end, None);
+        let task = Task::new("Test", date_start, date_end, None);
         assert!(task.is_err());
     }
 
@@ -103,7 +118,7 @@ mod tests {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 2, 0, 0).unwrap();
 
-        let task = Task::new("Test", None, date_start, date_end, None);
+        let task = Task::new("Test", date_start, date_end, None);
         assert!(task.is_ok());
     }
 }
