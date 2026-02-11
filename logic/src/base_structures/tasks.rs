@@ -64,98 +64,12 @@ pub enum DependencyNodeType {
 }
 
 /// Структура для определения зависимостей
-/// Определяем следующие понятия:
-/// Если prev_task - None, то это начало цепочки зависимостей. А так же какая то верхнеуровневая операция, например веха проекта
-/// Если next_task - None, то это конец цепочки зависимостей
-///
+
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Dependency {
-    from_task: Uuid,
-    to_task: Uuid,
-    dependency_type: Option<DependencyType>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    prev_task: Option<Vec<Uuid>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    next_task: Option<Vec<Uuid>>,
-}
-
-impl Dependency {
-    pub fn get_dependency_type(&self) -> DependencyNodeType {
-        fn is_valid_tasks(tasks: &Option<Vec<Uuid>>) -> bool {
-            tasks.as_ref().is_some_and(|v| !v.is_empty())
-        }
-
-        match (
-            is_valid_tasks(&self.prev_task),
-            is_valid_tasks(&self.next_task),
-        ) {
-            (false, true) => DependencyNodeType::Root,
-            (true, false) => DependencyNodeType::Base,
-            (true, true) => DependencyNodeType::Node,
-            (false, false) => DependencyNodeType::Isolated,
-        }
-    }
-
-    pub fn add_prev_task(&mut self, task_id: Uuid) {
-        if self.has_prev_tasks() {
-            self.prev_task.as_mut().unwrap().push(task_id);
-        } else {
-            self.prev_task = Some(vec![task_id]);
-        }
-    }
-
-    pub fn add_next_task(&mut self, task_id: Uuid) {
-        if self.has_next_tasks() {
-            self.next_task.as_mut().unwrap().push(task_id);
-        } else {
-            self.next_task = Some(vec![task_id]);
-        }
-    }
-
-    // pub fn delete_prev_task(&mut self, task_id: Uuid) {
-    //     if self.has_prev_tasks() {
-    //         self.prev_task
-    //             .as_mut()
-    //             .unwrap()
-    //             .iter()
-    //             .filter(|&&e| e == task_id)
-    //     }
-    // }
-
-    pub fn prev_tasks(&self) -> Option<&[Uuid]> {
-        self.prev_task.as_deref().filter(|v| !v.is_empty())
-    }
-
-    pub fn next_tasks(&self) -> Option<&[Uuid]> {
-        self.next_task.as_deref().filter(|v| !v.is_empty())
-    }
-
-    pub fn has_prev_tasks(&self) -> bool {
-        self.prev_tasks().is_some()
-    }
-
-    pub fn has_next_tasks(&self) -> bool {
-        self.next_tasks().is_some()
-    }
-
-    // Если вдруг получаем пустой вектор - то превращаем его в None
-    fn normalize(&mut self) {
-        if let Some(v) = &self.prev_task
-            && v.is_empty()
-        {
-            self.prev_task = None;
-        }
-        if let Some(v) = &self.next_task
-            && v.is_empty()
-        {
-            self.next_task = None;
-        }
-    }
-
-    // Исправляем структуру после десериализации
-    pub fn sanitaze(&mut self) {
-        self.normalize();
-    }
+    pub task_id: Uuid, // ID связанной задачи
+    pub dependency_type: Option<DependencyType>,
+    pub lag: TimeDelta, // Лаг/запас времени
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -174,7 +88,6 @@ impl Task {
         name: impl Into<String>,
         date_start: DateTime<Utc>,
         date_end: DateTime<Utc>,
-        dependencies: Option<Dependency>,
         resources: Option<Vec<ResourceOnTask>>,
     ) -> Result<Self, ProjectCreationErrors> {
         if date_start >= date_end {
@@ -189,19 +102,10 @@ impl Task {
             name: name.into(),
             date_start,
             date_end,
-            dependency: dependencies.unwrap_or_default(),
             status: TaskStatus::New,
             resources: resources.unwrap_or_default(),
             duration: date_end - date_start,
         })
-    }
-
-    pub fn add_prev_task(&mut self, task_id: Uuid) {
-        self.dependency.add_prev_task(task_id);
-    }
-
-    pub fn add_next_task(&mut self, task_id: Uuid) {
-        self.dependency.add_next_task(task_id);
     }
 }
 
@@ -209,13 +113,13 @@ impl Task {
 mod tests {
     use chrono::{TimeZone, Utc};
 
-    use crate::base_structures::tasks::{DependencyNodeType, Task};
+    use crate::base_structures::tasks::Task;
     #[test]
     fn test_invalid_task() {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 2, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
 
-        let task = Task::new("Test", date_start, date_end, None, None);
+        let task = Task::new("Test", date_start, date_end, None);
         assert!(task.is_err());
     }
 
@@ -224,32 +128,7 @@ mod tests {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 2, 0, 0).unwrap();
 
-        let task = Task::new("Test", date_start, date_end, None, None);
+        let task = Task::new("Test", date_start, date_end, None);
         assert!(task.is_ok());
-        assert_eq!(
-            task.unwrap().dependency.get_dependency_type(),
-            DependencyNodeType::Isolated
-        )
-    }
-    #[test]
-    fn test_for_dependencies() {
-        let date_start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 2, 0, 0).unwrap();
-
-        let mut task = Task::new("Test", date_start, date_end, None, None).unwrap();
-        assert_eq!(
-            task.dependency.get_dependency_type(),
-            DependencyNodeType::Isolated
-        );
-        task.add_prev_task(uuid::Uuid::new_v4());
-        assert_eq!(
-            task.dependency.get_dependency_type(),
-            DependencyNodeType::Base
-        );
-        task.add_next_task(uuid::Uuid::new_v4());
-        assert_eq!(
-            task.dependency.get_dependency_type(),
-            DependencyNodeType::Node
-        )
     }
 }

@@ -8,6 +8,26 @@ use crate::base_structures::{
     tasks::{ResourceOnTask, Task},
 };
 
+/// Структура для определения зависимостей
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub enum DependencyType {
+    Blocking,
+    #[default]
+    NonBlocking,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Dependency {
+    // ID связанной задачи
+    pub dependency_type: DependencyType,
+    pub depends_on: Uuid,
+    pub lag: TimeDelta, // Лаг/запас времени
+}
+
+/// Структура Project - главная структура всего проекта
+/// Она хранит в себе все задачи и зависимости между ними
+
 #[derive(Serialize, Deserialize)]
 pub struct Project {
     id: Uuid,
@@ -17,6 +37,7 @@ pub struct Project {
     date_end: DateTime<Utc>,
     resources: HashMap<Uuid, Resource>,
     tasks: HashMap<Uuid, Task>,
+    dependencies: HashMap<Uuid, Vec<Dependency>>,
     duration: TimeDelta,
 }
 
@@ -42,48 +63,15 @@ impl Project {
             date_end: end,
             resources: HashMap::new(),
             tasks: HashMap::new(),
+            dependencies: HashMap::new(),
             duration: end - start,
-        }
+        })
     }
 
     /// Private Validations methods
     /// Check that task start and end in project duration
     fn check_new_task(&self, task: &Task) -> bool {
         self.date_start <= task.date_start && self.date_end >= task.date_end
-    }
-
-    /// Проверяем, что задача существует в текущем проекте
-    fn validate_task_exist(&self, task_id: &uuid::Uuid) -> bool {
-        self.tasks.contains_key(task_id)
-    }
-
-    /// Проверка правильности зависимостей - проверяем, что все задачи, указанные в зависимости существуют в проекте
-    fn validate_dependent_tasks_exists(&self, task: &Task) -> bool {
-        let checked_dependency = &task.dependency;
-        let result_check_prev_tasks = match checked_dependency.has_prev_tasks() {
-            true => checked_dependency
-                .prev_tasks()
-                .unwrap()
-                .iter()
-                .all(|e| self.validate_task_exist(e)),
-            false => true,
-        };
-        let result_check_next_tasks = match checked_dependency.has_next_tasks() {
-            true => checked_dependency
-                .next_tasks()
-                .unwrap()
-                .iter()
-                .all(|e| self.validate_task_exist(e)),
-            false => true,
-        };
-        result_check_prev_tasks && result_check_next_tasks
-    }
-
-    /// Проверка на циклические зависимости
-    /// Если приходит параметр from_task - то мы начинаем проверять от этой таски.
-    /// Если None - то проверяем все задачи, начиная от Root тасок
-    fn check_circular_dependency(self, from_task: Option<&Task>) -> bool {
-        todo!()
     }
 
     /// Base method to work with project data
@@ -103,9 +91,12 @@ impl Project {
     /// Task management
     /// Add new task to project
     pub fn add_task(&mut self, task: Task) -> anyhow::Result<()> {
-        if self.check_new_task(&task) && self.validate_dependent_tasks_exists(&task) {
+        if self.check_new_task(&task) {
             println!("Add new task {:?}", &task.name);
             self.tasks.insert(task.id, task);
+            Ok(())
+        } else {
+            Err(anyhow::Error::msg("Task periods not in project dates"))
         }
     }
     /// Delete existing task from project
@@ -156,7 +147,8 @@ mod tests {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
 
-        let project = Project::new("TestProject", "Some test project", date_start, date_end);
+        let project = Project::new("TestProject", "Some test project", date_start, date_end)
+            .expect("Project is not created");
         println!("{}", project.duration);
         assert_eq!(project.name, String::from("TestProject"));
         assert_eq!(project.duration, date_end - date_start)
