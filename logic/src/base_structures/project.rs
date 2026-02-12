@@ -1,29 +1,9 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 use uuid::Uuid;
 
-use crate::base_structures::{
-    resource::Resource,
-    tasks::{ResourceOnTask, Task},
-};
-
-/// Структура для определения зависимостей
-
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub enum DependencyType {
-    Blocking,
-    #[default]
-    NonBlocking,
-}
-
-#[derive(Serialize, Deserialize, Default, Debug)]
-pub struct Dependency {
-    // ID связанной задачи
-    pub dependency_type: DependencyType,
-    pub depends_on: Uuid,
-    pub lag: TimeDelta, // Лаг/запас времени
-}
+use crate::base_structures::traits::BasicGettersForStructures;
 
 /// Структура Project - главная структура всего проекта
 /// Она хранит в себе все задачи и зависимости между ними
@@ -31,13 +11,10 @@ pub struct Dependency {
 #[derive(Serialize, Deserialize)]
 pub struct Project {
     id: Uuid,
-    name: String,
-    description: String,
+    pub name: String,
+    pub description: String,
     date_start: DateTime<Utc>,
     date_end: DateTime<Utc>,
-    resources: HashMap<Uuid, Resource>,
-    tasks: HashMap<Uuid, Task>,
-    dependencies: HashMap<Uuid, Vec<Dependency>>,
     duration: TimeDelta,
 }
 
@@ -61,64 +38,30 @@ impl Project {
             description: desc.into(),
             date_start: start,
             date_end: end,
-            resources: HashMap::new(),
-            tasks: HashMap::new(),
-            dependencies: HashMap::new(),
             duration: end - start,
         })
     }
 
-    /// Private Validations methods
-    /// Check that task start and end in project duration
-    fn check_new_task(&self, task: &Task) -> bool {
-        self.date_start <= task.date_start && self.date_end >= task.date_end
+    // Getters for private fields
+
+    // Project id
+}
+
+impl BasicGettersForStructures for Project {
+    fn get_id(&self) -> &Uuid {
+        &self.id
     }
 
-    /// Base method to work with project data
-    /// Resource management
-    pub fn add_resource(mut self, resource: Resource) -> Self {
-        self.resources.insert(resource.id, resource);
-        self
-    }
-    pub fn delete_resource(mut self, resource_id: &Uuid) -> Self {
-        match self.resources.remove(resource_id) {
-            Some(x) => println!("Resource {} deleted", x.name),
-            None => println!("Resource with {} not found", resource_id),
-        };
-        self
+    fn get_date_start(&self) -> &DateTime<Utc> {
+        &self.date_start
     }
 
-    /// Task management
-    /// Add new task to project
-    pub fn add_task(&mut self, task: Task) -> anyhow::Result<()> {
-        if self.check_new_task(&task) {
-            println!("Add new task {:?}", &task.name);
-            self.tasks.insert(task.id, task);
-            Ok(())
-        } else {
-            Err(anyhow::Error::msg("Task periods not in project dates"))
-        }
+    fn get_date_end(&self) -> &DateTime<Utc> {
+        &self.date_end
     }
-    /// Delete existing task from project
-    pub fn delete_task(mut self, task_id: &Uuid) -> Self {
-        match self.tasks.remove(task_id) {
-            Some(t) => println!("Task {} deleted", t.name),
-            None => println!("Task with {} not found", task_id),
-        };
-        self
-    }
-    /// add resource to task
-    pub fn add_resource_on_task(
-        mut self,
-        added_resource: ResourceOnTask,
-        task_id: Uuid,
-    ) -> anyhow::Result<()> {
-        let task = self
-            .tasks
-            .get_mut(&task_id)
-            .ok_or_else(|| anyhow::Error::msg(format!("No task with id {:?}", &task_id)))?;
-        task.resources.push(added_resource);
-        Ok(())
+
+    fn get_duration(&self) -> &TimeDelta {
+        &self.duration
     }
 }
 
