@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 pub trait ResourcePoll {
     fn allocate(&mut self, request: AllocationRequest) -> Result<()>;
-    fn check_allocation_correct(&self, request: &AllocationRequest) -> bool;
+    fn check_allocation_correct(&self, request: &AllocationRequest) -> anyhow::Result<()>;
     fn deallocate(&mut self, allocation_id: Uuid) -> Result<()>;
     fn add_resource(&mut self, resource: Resource) -> Result<()>;
     fn remove_resource(&mut self, id: &Uuid) -> Result<()>;
