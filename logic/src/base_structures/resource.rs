@@ -79,6 +79,17 @@ impl AllocationTimeWindow {
             date_end,
         }
     }
+
+    /// Проверяет, что есть пересечение с переданным объектом AllocationTimeWindow
+    pub fn include(&self, other: &Self) -> bool {
+        other.date_start >= self.date_start && other.date_end <= self.date_end
+    }
+}
+
+impl PartialEq for AllocationTimeWindow {
+    fn eq(&self, other: &Self) -> bool {
+        self.date_start == other.date_start && self.date_end == other.date_end
+    }
 }
 
 // Для итогового расчета затрат будем пользоваться перечисление RateMeasure
@@ -145,6 +156,20 @@ impl AllocationRequest {
     }
 }
 
+pub struct AllocationQuerryResult<'a> {
+    allocations_result: Vec<&'a ResourceAllocation>,
+}
+
+impl<'a> AllocationQuerryResult<'a> {
+    pub fn check_correct_timewindow(self, checked_timewindow: &AllocationTimeWindow) {}
+    pub fn len(&self) -> usize {
+        self.allocations_result.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.allocations_result.is_empty()
+    }
+}
+
 // Объект для описания назначения одного из ресурсов на задачу
 #[derive(Default, Debug)]
 pub struct ResourceAllocation {
@@ -193,15 +218,17 @@ impl LocalResourcePool {
 
     /// Функция должна проверить, что ресурс можно корректно назначить на
     pub fn get_resource_existing_allocations(
-        &self,
+        &'_ self,
         resource_id: &Uuid,
-    ) -> Vec<&ResourceAllocation> {
+    ) -> AllocationQuerryResult<'_> {
         let existing_allocations: Vec<&ResourceAllocation> = self
             .allocations
             .values()
             .filter(|a| &a.resource_id == resource_id)
             .collect();
-        existing_allocations
+        AllocationQuerryResult {
+            allocations_result: existing_allocations,
+        }
     }
 }
 
@@ -262,7 +289,7 @@ impl ResourcePoll for LocalResourcePool {
 
 #[cfg(test)]
 mod tests {
-    use chrono::DateTime;
+    use chrono::{DateTime, Datelike, TimeZone, Utc};
 
     use crate::base_structures::{
         resource::{AllocationRequest, AllocationTimeWindow, LocalResourcePool, Resource},
@@ -282,6 +309,23 @@ mod tests {
             resource.get_converted_rate(crate::base_structures::resource::RateMeasure::Monthly),
             22000.0
         );
+    }
+
+    #[test]
+    fn test_timewindows() {
+        let date_first_start: DateTime<Utc> = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
+        let date_first_end: DateTime<Utc> = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+
+        let date_second_start: DateTime<Utc> = Utc.with_ymd_and_hms(2025, 6, 1, 0, 0, 0).unwrap();
+        let date_second_end: DateTime<Utc> = Utc.with_ymd_and_hms(2025, 7, 1, 0, 0, 0).unwrap();
+
+        let timewindow1 = AllocationTimeWindow::new(
+            Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap(),
+            Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
+        );
+        let timewindow2 = AllocationTimeWindow::new(date_second_start, date_second_end);
+
+        assert!(timewindow1.include(&timewindow2));
     }
 
     #[test]
