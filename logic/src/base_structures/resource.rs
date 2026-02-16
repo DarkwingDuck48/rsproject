@@ -81,6 +81,7 @@ impl AllocationTimeWindow {
     }
 
     /// Проверяет, что есть пересечение с переданным объектом AllocationTimeWindow
+    /// И возвращает true или fasle
     pub fn include(&self, other: &Self) -> bool {
         other.date_start >= self.date_start && other.date_end <= self.date_end
     }
