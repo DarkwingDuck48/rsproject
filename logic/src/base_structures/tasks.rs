@@ -6,7 +6,7 @@ use crate::base_structures::{
     ProjectCreationErrors, dependencies::Dependency, traits::BasicGettersForStructures,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum TaskStatus {
     New,
     Wait,
@@ -16,7 +16,7 @@ pub enum TaskStatus {
     Closed,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
     id: Uuid,
     pub name: String,

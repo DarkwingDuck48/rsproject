@@ -1,21 +1,25 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 use uuid::Uuid;
 
-use crate::base_structures::traits::BasicGettersForStructures;
+use crate::base_structures::{
+    project_calendar::ProjectCalendar, tasks::Task, traits::BasicGettersForStructures,
+};
 
 /// Структура Project - главная структура всего проекта
 /// Она хранит в себе все задачи и зависимости между ними
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Project {
     id: Uuid,
     pub name: String,
     pub description: String,
+    pub calendar: ProjectCalendar,
     date_start: DateTime<Utc>,
     date_end: DateTime<Utc>,
     duration: TimeDelta,
+    pub tasks: HashMap<Uuid, Task>,
 }
 
 impl Project {
@@ -39,12 +43,10 @@ impl Project {
             date_start: start,
             date_end: end,
             duration: end - start,
+            calendar: ProjectCalendar::default(),
+            tasks: HashMap::new(),
         })
     }
-
-    // Getters for private fields
-
-    // Project id
 }
 
 impl BasicGettersForStructures for Project {

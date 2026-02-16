@@ -4,14 +4,14 @@ use uuid::Uuid;
 
 /// Структура для определения зависимостей
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub enum DependencyType {
     Blocking,
     #[default]
     NonBlocking,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Dependency {
     // ID связанной задачи
     pub dependency_type: DependencyType,
