@@ -66,7 +66,7 @@ impl RateMeasure {
 
 // TODO: Реализовать возможность сравнения окон занятости между ресурсами
 //
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, Copy)]
 pub struct AllocationTimeWindow {
     date_start: DateTime<Utc>,
     date_end: DateTime<Utc>,
@@ -131,6 +131,7 @@ impl Resource {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct AllocationRequest {
     resource_id: Uuid,
     task_id: Uuid,
@@ -158,16 +159,32 @@ impl AllocationRequest {
 }
 
 pub struct AllocationQuerryResult<'a> {
-    allocations_result: Vec<&'a ResourceAllocation>,
+    allocations_list: Vec<&'a ResourceAllocation>,
 }
 
 impl<'a> AllocationQuerryResult<'a> {
-    pub fn check_correct_timewindow(self, checked_timewindow: &AllocationTimeWindow) {}
+    pub fn check_correct_timewindow(self, allocation_request: &AllocationRequest) -> bool {
+        let mut same_time_window = vec![];
+        for ra in self.allocations_list {
+            if ra.time_window.include(&allocation_request.time_window) {
+                same_time_window.push(ra);
+            }
+        }
+        println!("{:?}", same_time_window);
+        let mut full_engagement_rate = allocation_request.engagement_rate;
+        if !same_time_window.is_empty() {
+            for ra in same_time_window {
+                full_engagement_rate += ra.get_engagement_rate()
+            }
+        }
+        println!("{:?} > 1.0", full_engagement_rate);
+        full_engagement_rate <= 1.0
+    }
     pub fn len(&self) -> usize {
-        self.allocations_result.len()
+        self.allocations_list.len()
     }
     pub fn is_empty(&self) -> bool {
-        self.allocations_result.is_empty()
+        self.allocations_list.is_empty()
     }
 }
 
@@ -196,6 +213,10 @@ impl ResourceAllocation {
 
     pub fn get_id(&self) -> Uuid {
         self.id
+    }
+
+    pub fn get_engagement_rate(&self) -> &f64 {
+        &self.engagement_rate
     }
 }
 
@@ -228,7 +249,7 @@ impl LocalResourcePool {
             .filter(|a| &a.resource_id == resource_id)
             .collect();
         AllocationQuerryResult {
-            allocations_result: existing_allocations,
+            allocations_list: existing_allocations,
         }
     }
 }
@@ -262,11 +283,20 @@ impl ResourcePoll for LocalResourcePool {
         // Нашли существующие аллокации - нужно проверить, что
         // 1. У ресуса есть свободное окно, чтобы заниматься работой
         // 2. Если окна занятости пересекаются - сумма всех engagement_rate у всех пересекающихся аллокаций должна быть <= 1.0
+        if !existing_allocation_on_resource.check_correct_timewindow(request) {
+            return Err(anyhow::Error::msg(
+                "This allocation can't be created, because Resoure will be utilized more than 100%",
+            ));
+        }
 
         Ok(())
     }
     fn deallocate(&mut self, allocation_id: Uuid) -> anyhow::Result<()> {
-        todo!()
+        let alocation = self.allocations.remove(&allocation_id);
+        match alocation {
+            Some(_) => Ok(()),
+            None => Err(anyhow::Error::msg("This allocation not found")),
+        }
     }
 
     fn add_resource(&mut self, resource: Resource) -> anyhow::Result<()> {
@@ -290,12 +320,87 @@ impl ResourcePoll for LocalResourcePool {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{DateTime, Datelike, TimeZone, Utc};
+    use chrono::{DateTime, TimeZone, Utc};
 
     use crate::base_structures::{
         resource::{AllocationRequest, AllocationTimeWindow, LocalResourcePool, Resource},
         traits::ResourcePoll,
     };
+
+    #[test]
+    fn test_deallocate() {
+        let mut lrp = LocalResourcePool::default();
+        let resource = Resource::new(String::from("Test"), 1000.0, super::RateMeasure::Hourly)
+            .expect("Can't create resource");
+        lrp.add_resource(resource.clone()).unwrap();
+        let project_id = uuid::Uuid::new_v4();
+
+        let allocation_request = AllocationRequest::new(
+            resource.id,
+            uuid::Uuid::new_v4(),
+            project_id,
+            0.8,
+            AllocationTimeWindow::new(
+                Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap(),
+                Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
+            ),
+        );
+        assert!(lrp.allocate(allocation_request).is_ok());
+
+        let al = lrp.get_resource_existing_allocations(&resource.id);
+        let al_id = al.allocations_list[0];
+
+        assert!(lrp.deallocate(al_id.get_id()).is_ok())
+    }
+    #[test]
+    fn test_allocation_check() {
+        let mut lrp = LocalResourcePool::default();
+        let resource = Resource::new(String::from("Test"), 1000.0, super::RateMeasure::Hourly)
+            .expect("Can't create resource");
+
+        let project_id = uuid::Uuid::new_v4();
+
+        let allocation_request = AllocationRequest::new(
+            resource.id,
+            uuid::Uuid::new_v4(),
+            project_id,
+            0.8,
+            AllocationTimeWindow::new(
+                Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap(),
+                Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
+            ),
+        );
+        assert!(!lrp.check_resource_exists(&resource.id));
+        // Нельзя назначить, пока ресурс не в пуле
+        assert!(lrp.allocate(allocation_request).is_err());
+
+        lrp.add_resource(resource.clone()).unwrap();
+        assert!(lrp.allocate(allocation_request).is_ok());
+
+        let allocation_request2 = AllocationRequest::new(
+            resource.id,
+            uuid::Uuid::new_v4(),
+            project_id,
+            0.1,
+            AllocationTimeWindow::new(
+                Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap(),
+                Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
+            ),
+        );
+        assert!(lrp.allocate(allocation_request2).is_ok());
+
+        let allocation_request3 = AllocationRequest::new(
+            resource.id,
+            uuid::Uuid::new_v4(),
+            project_id,
+            0.2,
+            AllocationTimeWindow::new(
+                Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap(),
+                Utc.with_ymd_and_hms(2025, 7, 1, 0, 0, 0).unwrap(),
+            ),
+        );
+        assert!(lrp.allocate(allocation_request3).is_err());
+    }
 
     #[test]
     fn test_resource_measure_converter() {

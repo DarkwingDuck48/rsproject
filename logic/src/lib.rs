@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod base_structures;
 pub mod cust_exceptions;
 
