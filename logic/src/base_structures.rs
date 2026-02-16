@@ -1,4 +1,4 @@
-mod dependecies;
+mod dependencies;
 mod project;
 mod project_containers;
 mod resource;

@@ -2,7 +2,9 @@ use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::base_structures::{ProjectCreationErrors, traits::BasicGettersForStructures};
+use crate::base_structures::{
+    ProjectCreationErrors, dependencies::Dependency, traits::BasicGettersForStructures,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum TaskStatus {
@@ -22,6 +24,8 @@ pub struct Task {
     date_end: DateTime<Utc>,
     duration: TimeDelta,
     status: TaskStatus,
+    resource_allocations: Vec<Uuid>,
+    dependencies: Vec<Dependency>,
 }
 
 impl Task {
@@ -44,6 +48,8 @@ impl Task {
             date_end,
             status: TaskStatus::New,
             duration: date_end - date_start,
+            resource_allocations: vec![],
+            dependencies: vec![],
         })
     }
 

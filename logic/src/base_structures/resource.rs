@@ -14,7 +14,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::base_structures::traits::ResourcePoll;
+use crate::base_structures::traits::ResourcePool;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EngagementRate {
@@ -83,7 +83,7 @@ impl AllocationTimeWindow {
     /// Проверяет, что есть пересечение с переданным объектом AllocationTimeWindow
     /// И возвращает true или fasle
     pub fn include(&self, other: &Self) -> bool {
-        other.date_start >= self.date_start && other.date_end <= self.date_end
+        self.date_start < other.date_end && self.date_end > other.date_start
     }
 }
 
@@ -158,27 +158,24 @@ impl AllocationRequest {
     }
 }
 
-pub struct AllocationQuerryResult<'a> {
+pub struct AllocationQueryResult<'a> {
     allocations_list: Vec<&'a ResourceAllocation>,
 }
 
-impl<'a> AllocationQuerryResult<'a> {
+impl<'a> AllocationQueryResult<'a> {
     pub fn check_correct_timewindow(self, allocation_request: &AllocationRequest) -> bool {
-        let mut same_time_window = vec![];
-        for ra in self.allocations_list {
-            if ra.time_window.include(&allocation_request.time_window) {
-                same_time_window.push(ra);
-            }
-        }
-        println!("{:?}", same_time_window);
-        let mut full_engagement_rate = allocation_request.engagement_rate;
-        if !same_time_window.is_empty() {
-            for ra in same_time_window {
-                full_engagement_rate += ra.get_engagement_rate()
-            }
-        }
-        println!("{:?} > 1.0", full_engagement_rate);
-        full_engagement_rate <= 1.0
+        let overlapping_allocations: Vec<&&ResourceAllocation> = self
+            .allocations_list
+            .iter()
+            .filter(|ra| ra.time_window.include(&allocation_request.time_window))
+            .collect();
+
+        let total_engagement: f64 = overlapping_allocations
+            .iter()
+            .map(|ra| *ra.get_engagement_rate())
+            .sum();
+
+        total_engagement + allocation_request.engagement_rate <= 1.0
     }
     pub fn len(&self) -> usize {
         self.allocations_list.len()
@@ -231,39 +228,19 @@ impl LocalResourcePool {
         self.resources.contains_key(resource_id)
     }
 
-    pub fn get_resource_by_name(&self, find_name: String) -> &Resource {
-        self.resources
-            .values()
-            .filter(|r| r.name == find_name.as_str())
-            .collect::<Vec<&Resource>>()[0]
+    pub fn get_resource_by_name(&self, find_name: String) -> Option<&Resource> {
+        self.resources.values().find(|r| r.name == find_name)
     }
 
     /// Функция должна проверить, что ресурс можно корректно назначить на
     pub fn get_resource_existing_allocations(
-        &'_ self,
+        &self,
         resource_id: &Uuid,
-    ) -> AllocationQuerryResult<'_> {
-        let existing_allocations: Vec<&ResourceAllocation> = self
-            .allocations
+    ) -> Vec<&ResourceAllocation> {
+        self.allocations
             .values()
             .filter(|a| &a.resource_id == resource_id)
-            .collect();
-        AllocationQuerryResult {
-            allocations_list: existing_allocations,
-        }
-    }
-}
-
-impl ResourcePoll for LocalResourcePool {
-    fn allocate(&mut self, request: AllocationRequest) -> anyhow::Result<()> {
-        match self.check_allocation_correct(&request) {
-            Ok(()) => {
-                let allocation = ResourceAllocation::new(request);
-                self.allocations.insert(allocation.get_id(), allocation);
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
+            .collect()
     }
 
     /// Несколько проверок перед назначением ресурса на задачу в пуле
@@ -280,10 +257,14 @@ impl ResourcePoll for LocalResourcePool {
             return Ok(());
         }
 
+        let aqr = AllocationQueryResult {
+            allocations_list: existing_allocation_on_resource,
+        };
+
         // Нашли существующие аллокации - нужно проверить, что
         // 1. У ресуса есть свободное окно, чтобы заниматься работой
         // 2. Если окна занятости пересекаются - сумма всех engagement_rate у всех пересекающихся аллокаций должна быть <= 1.0
-        if !existing_allocation_on_resource.check_correct_timewindow(request) {
+        if !aqr.check_correct_timewindow(request) {
             return Err(anyhow::Error::msg(
                 "This allocation can't be created, because Resoure will be utilized more than 100%",
             ));
@@ -291,6 +272,20 @@ impl ResourcePoll for LocalResourcePool {
 
         Ok(())
     }
+}
+
+impl ResourcePool for LocalResourcePool {
+    fn allocate(&mut self, request: AllocationRequest) -> anyhow::Result<()> {
+        match self.check_allocation_correct(&request) {
+            Ok(()) => {
+                let allocation = ResourceAllocation::new(request);
+                self.allocations.insert(allocation.get_id(), allocation);
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     fn deallocate(&mut self, allocation_id: Uuid) -> anyhow::Result<()> {
         let alocation = self.allocations.remove(&allocation_id);
         match alocation {
@@ -324,7 +319,7 @@ mod tests {
 
     use crate::base_structures::{
         resource::{AllocationRequest, AllocationTimeWindow, LocalResourcePool, Resource},
-        traits::ResourcePoll,
+        traits::ResourcePool,
     };
 
     #[test]
@@ -348,7 +343,7 @@ mod tests {
         assert!(lrp.allocate(allocation_request).is_ok());
 
         let al = lrp.get_resource_existing_allocations(&resource.id);
-        let al_id = al.allocations_list[0];
+        let al_id = al[0];
 
         assert!(lrp.deallocate(al_id.get_id()).is_ok())
     }
@@ -441,7 +436,8 @@ mod tests {
 
         let mut lrp = LocalResourcePool::default();
         lrp.add_resource(resource).unwrap();
-        let resource_from_lrp = lrp.get_resource_by_name(String::from("Test")).id;
+
+        let resource_from_lrp = lrp.get_resource_by_name(String::from("Test")).unwrap().id;
         let zero_allocations = lrp.get_resource_existing_allocations(&resource_from_lrp);
 
         assert_eq!(zero_allocations.len(), 0);
