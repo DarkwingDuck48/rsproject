@@ -4,4 +4,4 @@ pub mod cust_exceptions;
 mod services;
 
 pub use base_structures::Project;
-pub use services::TaskService;
+pub use services::{ResourceService, TaskService};

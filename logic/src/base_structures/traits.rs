@@ -1,7 +1,9 @@
 use crate::{
     Project,
     base_structures::{
-        project_calendar::ProjectCalendar, resource::Resource, resource_pool::AllocationRequest,
+        project_calendar::ProjectCalendar,
+        resource::Resource,
+        resource_pool::{AllocationRequest, ResourceAllocation},
     },
 };
 use anyhow::Result;
@@ -13,6 +15,9 @@ pub trait ResourcePool {
     fn deallocate(&mut self, allocation_id: Uuid) -> Result<()>;
     fn add_resource(&mut self, resource: Resource) -> Result<()>;
     fn remove_resource(&mut self, id: &Uuid) -> Result<()>;
+    fn get_resources(&self) -> Vec<&Resource>;
+    fn get_mut_resource_by_uuid(&mut self, resource_id: Uuid) -> Option<&mut Resource>;
+    fn get_resource_existing_allocations(&self, resource_id: &Uuid) -> Vec<&ResourceAllocation>;
 }
 
 pub trait ProjectContainer {

@@ -109,15 +109,6 @@ impl LocalResourcePool {
     }
 
     /// Функция должна проверить, что ресурс можно корректно назначить на
-    pub fn get_resource_existing_allocations(
-        &self,
-        resource_id: &Uuid,
-    ) -> Vec<&ResourceAllocation> {
-        self.allocations
-            .values()
-            .filter(|a| &a.resource_id == resource_id)
-            .collect()
-    }
 
     /// Несколько проверок перед назначением ресурса на задачу в пуле
     /// 1. Ресурс с таким ID существует в пуле
@@ -177,7 +168,9 @@ impl ResourcePool for LocalResourcePool {
             Err(e) => Err(e),
         }
     }
-
+    fn get_resources(&self) -> Vec<&Resource> {
+        self.resources.values().collect()
+    }
     fn deallocate(&mut self, allocation_id: Uuid) -> anyhow::Result<()> {
         let alocation = self.allocations.remove(&allocation_id);
         match alocation {
@@ -202,6 +195,17 @@ impl ResourcePool for LocalResourcePool {
                 id
             ))),
         }
+    }
+
+    fn get_resource_existing_allocations(&self, resource_id: &Uuid) -> Vec<&ResourceAllocation> {
+        self.allocations
+            .values()
+            .filter(|a| &a.resource_id == resource_id)
+            .collect()
+    }
+
+    fn get_mut_resource_by_uuid(&mut self, resource_id: Uuid) -> Option<&mut Resource> {
+        self.resources.get_mut(&resource_id)
     }
 }
 

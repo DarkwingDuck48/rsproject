@@ -70,7 +70,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
 mod tests {
     use super::*;
     use crate::base_structures::{Project, SingleProjectContainer};
-    use chrono::{DateTime, TimeZone, Utc};
+    use chrono::{TimeZone, Utc};
 
     #[test]
     fn test_create_task() {
