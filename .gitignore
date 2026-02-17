@@ -1,2 +1,3 @@
 /target
 *.code-workspace
+logic/src/.DS_Store
