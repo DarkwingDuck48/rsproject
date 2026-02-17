@@ -9,5 +9,8 @@ mod time_window;
 mod traits;
 
 pub use crate::cust_exceptions::ProjectCreationErrors;
+pub use dependencies::DependencyType;
 pub use project::Project;
+pub use project_containers::SingleProjectContainer;
+pub use tasks::Task;
 pub use traits::{BasicGettersForStructures, ProjectContainer, ResourcePool};

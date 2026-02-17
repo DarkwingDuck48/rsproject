@@ -47,6 +47,10 @@ impl Project {
             tasks: HashMap::new(),
         })
     }
+
+    pub fn get_project_tasks(&self) -> Vec<&Task> {
+        self.tasks.values().collect()
+    }
 }
 
 impl BasicGettersForStructures for Project {

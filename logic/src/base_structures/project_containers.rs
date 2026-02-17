@@ -1,5 +1,5 @@
+use anyhow::Result;
 use std::collections::HashMap;
-
 /// Модуль для хранения известных контейнеров проектов
 ///
 /// Будем реализовывать 2 контейнера - одиночный и мульти контейнер
@@ -20,6 +20,16 @@ pub struct SingleProjectContainer {
     project: Option<Project>,
     resource_pool: LocalResourcePool,
     calendars: HashMap<Uuid, ProjectCalendar>,
+}
+
+impl SingleProjectContainer {
+    pub fn new() -> Self {
+        Self {
+            project: None,
+            resource_pool: LocalResourcePool::default(),
+            calendars: HashMap::new(),
+        }
+    }
 }
 
 impl ProjectContainer for SingleProjectContainer {
@@ -54,5 +64,11 @@ impl ProjectContainer for SingleProjectContainer {
 
     fn calendar(&self, project_id: &Uuid) -> Option<&ProjectCalendar> {
         self.calendars.get(project_id)
+    }
+
+    fn get_project_mut(&mut self, id: &Uuid) -> Option<&mut Project> {
+        self.project
+            .as_mut()
+            .and_then(|p| if p.get_id() == id { Some(p) } else { None })
     }
 }
