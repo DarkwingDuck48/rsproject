@@ -1,4 +1,7 @@
-use crate::base_structures::{BasicGettersForStructures, DependencyType, ProjectContainer, Task};
+use crate::{
+    Project,
+    base_structures::{BasicGettersForStructures, DependencyType, ProjectContainer, Task},
+};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -10,6 +13,9 @@ pub struct TaskService<'a, C: ProjectContainer> {
 impl<'a, C: ProjectContainer> TaskService<'a, C> {
     pub fn new(container: &'a mut C) -> Self {
         Self { container }
+    }
+    pub fn get_project(&self, project_id: &Uuid) -> Option<&Project> {
+        self.container.get_project(project_id)
     }
 
     // Создание задачи

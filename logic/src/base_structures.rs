@@ -13,6 +13,7 @@ pub use time_window::TimeWindow;
 
 pub use dependencies::DependencyType;
 pub use project::Project;
+pub use project_calendar::ProjectCalendar;
 pub use project_containers::SingleProjectContainer;
 pub use resource::{ExceptionPeriod, ExceptionType, RateMeasure, Resource};
 pub use tasks::Task;

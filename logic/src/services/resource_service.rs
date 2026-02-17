@@ -1,4 +1,6 @@
-use crate::base_structures::{ExceptionPeriod, ProjectContainer, RateMeasure, Resource};
+use crate::base_structures::{
+    ExceptionPeriod, ProjectCalendar, ProjectContainer, RateMeasure, Resource,
+};
 use anyhow::Result;
 use uuid::Uuid;
 pub struct ResourceService<'a, C: ProjectContainer> {
@@ -8,6 +10,10 @@ pub struct ResourceService<'a, C: ProjectContainer> {
 impl<'a, C: ProjectContainer> ResourceService<'a, C> {
     pub fn new(container: &'a mut C) -> Self {
         Self { container }
+    }
+
+    pub fn get_calendar(&self, project_id: &Uuid) -> Option<&ProjectCalendar> {
+        self.container.calendar(project_id)
     }
 
     pub fn create_resource(
