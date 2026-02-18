@@ -3,7 +3,7 @@
 /// Будем реализовывать 2 контейнера - одиночный и мульти контейнер
 /// Для контейнеров может быть реализована дополнительная логика обработки, но базово будем реализовывать
 /// трейт ProjectContainer
-use std::collections::HashMap;
+use std::{collections::HashMap, vec};
 use uuid::Uuid;
 
 use crate::{
@@ -28,6 +28,12 @@ impl SingleProjectContainer {
             resource_pool: LocalResourcePool::default(),
             calendars: HashMap::new(),
         }
+    }
+}
+
+impl Default for SingleProjectContainer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -69,5 +75,12 @@ impl ProjectContainer for SingleProjectContainer {
         self.project
             .as_mut()
             .and_then(|p| if p.get_id() == id { Some(p) } else { None })
+    }
+
+    fn list_project(&self) -> Vec<&Project> {
+        match &self.project {
+            Some(p) => vec![p],
+            None => vec![],
+        }
     }
 }
