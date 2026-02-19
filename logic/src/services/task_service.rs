@@ -1,6 +1,8 @@
 use crate::{
-    Project,
-    base_structures::{BasicGettersForStructures, DependencyType, ProjectContainer, Task},
+    Project, TimeWindow,
+    base_structures::{
+        AllocationRequest, BasicGettersForStructures, DependencyType, ProjectContainer, Task,
+    },
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -50,14 +52,46 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
     }
 
     // Присвоить задаче ресурс
-    pub fn assign_resource(
+    // Мы должны создать запрос на аллокацию ресурса и отправить его в ресурсы, чтобы мы смогли их назначить
+    // Вообще предполагается, что ресурс назначается на весь промежуток задачи, однако мы можем явно указать период, на который ресурс будет зайствован
+    // В этом случае надо бы проверить, что это окно входит в промежуток задачи
+    pub fn allocate_resource(
         &mut self,
         project_id: Uuid,
         task_id: Uuid,
         resource_id: Uuid,
         engagement: f64,
-    ) -> Result<()> {
-        todo!()
+        time_window: Option<TimeWindow>,
+    ) -> anyhow::Result<()> {
+        let project = self
+            .container
+            .get_project(&project_id)
+            .ok_or_else(|| anyhow::Error::msg("Запрошенный проект не найден"))?;
+        let task = project.tasks.get(&task_id).ok_or_else(|| {
+            anyhow::Error::msg(format!("Задача не найдена в проекте {}", project.name))
+        })?;
+
+        let allocation_time_window = match time_window {
+            Some(tw) => tw,
+            None => TimeWindow::new(*task.get_date_start(), *task.get_date_end())?,
+        };
+
+        let allocation_request = AllocationRequest::new(
+            resource_id,
+            task_id,
+            project_id,
+            engagement,
+            allocation_time_window,
+        );
+        let project_calendar = self
+            .container
+            .calendar(&project_id)
+            .ok_or_else(|| anyhow::Error::msg("Календарь не найден в проекте"))?
+            .clone();
+
+        self.container
+            .resource_pool_mut()
+            .allocate(allocation_request, &project_calendar)
     }
 
     // Добавить зависимость задач

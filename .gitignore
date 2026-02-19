@@ -1,3 +1,5 @@
 /target
 *.code-workspace
 logic/src/.DS_Store
+logic/src/services/task_service.rs
+.DS_Store
