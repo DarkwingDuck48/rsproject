@@ -4,6 +4,13 @@ use logic::{BasicGettersForStructures, ProjectContainer};
 
 pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     ui.heading("Project info");
+
+    if ui.button("➕ Новый проект").clicked() {
+        app.show_new_project_dialog = true;
+    }
+
+    ui.separator();
+
     if let Some(project) = app.container.list_project().first() {
         ui.label(format!("Название: {}", project.name));
         ui.label(format!("Описание: {}", project.description));

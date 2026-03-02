@@ -4,6 +4,7 @@ use chrono::NaiveDate;
 use eframe::egui::{self, Widget};
 use logic::{Project, ProjectContainer, SingleProjectContainer};
 use tabs::*;
+use uuid::Uuid;
 
 #[derive(PartialEq)]
 enum Tab {
@@ -21,6 +22,8 @@ struct ProjectApp {
     new_project_start: NaiveDate,
     new_project_end: NaiveDate,
     error_message: Option<String>,
+
+    selected_project_id: Option<Uuid>,
 }
 
 impl Default for ProjectApp {
@@ -34,6 +37,7 @@ impl Default for ProjectApp {
             new_project_start: chrono::Utc::now().date_naive(),
             new_project_end: chrono::Utc::now().date_naive(),
             error_message: None,
+            selected_project_id: None,
         }
     }
 }
@@ -45,8 +49,15 @@ impl ProjectApp {
         egui::Window::new("Создать новый проект")
             .open(&mut open)
             .show(ctx, |ui| {
-                ui.text_edit_singleline(&mut self.new_project_name);
-                ui.text_edit_singleline(&mut self.new_project_desc);
+                ui.horizontal(|ui| {
+                    ui.label("Имя проекта");
+                    ui.text_edit_singleline(&mut self.new_project_name);
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Описание проекта");
+                    ui.text_edit_singleline(&mut self.new_project_desc);
+                });
+
                 ui.horizontal(|ui| {
                     ui.label("Дата начала проекта:");
                     egui_extras::DatePickerButton::new(&mut self.new_project_start)
@@ -93,15 +104,33 @@ impl eframe::App for ProjectApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         //Верхняя панель с заголовком
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            ui.menu_button("File", |ui| {
+                if ui.button("Новый проект").clicked() {
+                    self.show_new_project_dialog = true;
+                    ui.close()
+                }
+                if ui.button("Новый контейнер").clicked() {
+                    self.container = SingleProjectContainer::new();
+                    ui.close();
+                }
+                ui.separator();
+                if ui.button("Выход").clicked() {
+                    std::process::exit(0)
+                }
+            });
+
             ui.heading("RS Project");
-            if ui.button("➕ Новый проект").clicked() {
-                self.show_new_project_dialog = true;
-            }
         });
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.heading("Секции");
             ui.separator();
-            ui.selectable_value(&mut self.selected_tab, Tab::Project, "📁 Project");
+            ui.selectable_value(&mut self.selected_tab, Tab::Project, "📁 Project")
+                .context_menu(|ui| {
+                    if ui.button("Новый проект").clicked() {
+                        self.show_new_project_dialog = true;
+                        ui.close();
+                    }
+                });
             ui.selectable_value(&mut self.selected_tab, Tab::Tasks, "✅ Tasks");
             ui.selectable_value(&mut self.selected_tab, Tab::Resources, "👤 Resources");
         });
