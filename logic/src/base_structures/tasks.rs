@@ -79,6 +79,10 @@ impl Task {
         self.resource_allocations.contains(allocation_id)
     }
 
+    pub fn get_resource_allocations(&self) -> &Vec<Uuid> {
+        &self.resource_allocations
+    }
+
     pub fn add_dependency(&mut self, dependency: Dependency) {
         self.dependencies.push(dependency)
     }

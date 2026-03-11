@@ -20,7 +20,7 @@ pub struct ExceptionPeriod {
     pub exception_type: ExceptionType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ExceptionType {
     Vacation,    // Полностью не работает
     SickLeave,   // Не работает
@@ -47,7 +47,7 @@ impl EngagementRate {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 pub enum RateMeasure {
     Daily,
     #[default]

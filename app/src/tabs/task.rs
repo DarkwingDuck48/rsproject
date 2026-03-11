@@ -42,6 +42,8 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                         // Кнопка назначения ресурса (пока заглушка)
                         if ui.button("Assign").clicked() {
                             app.selected_task_id = Some(*task.get_id());
+                            app.assign_custom_start = task.get_date_start().date_naive();
+                            app.assign_custom_end = task.get_date_end().date_naive();
                             app.show_assign_resource_dialog = true;
                         }
                         ui.end_row();

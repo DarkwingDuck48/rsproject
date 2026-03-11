@@ -6,10 +6,10 @@ use logic::{
 };
 
 pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
-    ui.heading("Resources");
+    ui.heading("Ресурсы");
 
     // Кнопка добавления ресурса
-    if ui.button("➕ Add Resource").clicked() {
+    if ui.button("➕ Добавить ресурс").clicked() {
         app.show_new_resource_dialog = true;
     }
 
@@ -17,8 +17,6 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
 
     // Получаем текущий проект (если есть) – для календаря и проверок
     if let Some(project) = app.container.list_projects().first() {
-        let project_id = *project.get_id();
-
         // Создаём сервис ресурсов для чтения (не мутабельно)
         let resource_service = ResourceService::new(&mut app.container);
         let resources = resource_service.list_resources();
