@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::base_structures::{
-    ProjectCreationErrors, dependencies::Dependency, traits::BasicGettersForStructures,
+    Dependency, ProjectCreationErrors, traits::BasicGettersForStructures,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -17,6 +17,16 @@ pub enum TaskStatus {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+
+/// Описание структуры
+/// id - UUID задачи
+/// name - Имя задачи (публичное)
+/// date_start - Дата начала
+/// date_end - Дата окончания
+/// duration - Продолжительность задачи
+/// status - статус задачи
+/// resource_allocations - назначенные ресурсы
+/// dependencies - зависимые задачи (предшественники)
 pub struct Task {
     id: Uuid,
     pub name: String,
@@ -59,6 +69,22 @@ impl Task {
 
     pub fn change_status(&mut self, new_status: TaskStatus) {
         self.status = new_status
+    }
+
+    pub fn set_resource_allocation(&mut self, allocation_id: Uuid) {
+        self.resource_allocations.push(allocation_id)
+    }
+
+    pub fn is_resource_assigned(&self, allocation_id: &Uuid) -> bool {
+        self.resource_allocations.contains(allocation_id)
+    }
+
+    pub fn add_dependency(&mut self, dependency: Dependency) {
+        self.dependencies.push(dependency)
+    }
+
+    pub fn get_dependencies(&self) -> &Vec<Dependency> {
+        &self.dependencies
     }
 }
 

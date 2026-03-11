@@ -117,9 +117,16 @@ impl Resource {
     pub fn get_converted_rate(&self, to_measure: RateMeasure) -> f64 {
         self.rate_measure.convert(to_measure, self.rate)
     }
+    pub fn get_rate_measure(&self) -> &RateMeasure {
+        &self.rate_measure
+    }
 
     pub fn add_unavailable_period(&mut self, exception_period: ExceptionPeriod) {
         self.unavailable_periods.push(exception_period);
+    }
+
+    pub fn get_unavailable_periods(&self) -> &Vec<ExceptionPeriod> {
+        &self.unavailable_periods
     }
 
     pub fn is_available(&self, period: &TimeWindow, calendar: &ProjectCalendar) -> bool {

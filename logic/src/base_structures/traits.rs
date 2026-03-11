@@ -11,7 +11,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use uuid::Uuid;
 
 pub trait ResourcePool {
-    fn allocate(&mut self, request: AllocationRequest, calendar: &ProjectCalendar) -> Result<()>;
+    fn allocate(&mut self, request: AllocationRequest, calendar: &ProjectCalendar) -> Result<Uuid>;
     fn deallocate(&mut self, allocation_id: Uuid) -> Result<()>;
     fn add_resource(&mut self, resource: Resource) -> Result<()>;
     fn remove_resource(&mut self, id: &Uuid) -> Result<()>;
@@ -24,7 +24,7 @@ pub trait ProjectContainer {
     fn add_project(&mut self, project: Project) -> Result<()>;
     fn get_project(&self, id: &Uuid) -> Option<&Project>;
     fn get_project_mut(&mut self, id: &Uuid) -> Option<&mut Project>;
-    fn list_project(&self) -> Vec<&Project>;
+    fn list_projects(&self) -> Vec<&Project>;
     // общий пул ресурсов
     fn resource_pool(&self) -> &dyn ResourcePool;
     fn resource_pool_mut(&mut self) -> &mut dyn ResourcePool;

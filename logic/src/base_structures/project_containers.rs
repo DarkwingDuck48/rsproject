@@ -77,7 +77,7 @@ impl ProjectContainer for SingleProjectContainer {
             .and_then(|p| if p.get_id() == id { Some(p) } else { None })
     }
 
-    fn list_project(&self) -> Vec<&Project> {
+    fn list_projects(&self) -> Vec<&Project> {
         match &self.project {
             Some(p) => vec![p],
             None => vec![],

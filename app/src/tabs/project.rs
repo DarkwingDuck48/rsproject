@@ -11,7 +11,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
 
     ui.separator();
 
-    if let Some(project) = app.container.list_project().first() {
+    if let Some(project) = app.container.list_projects().first() {
         ui.label(format!("Название: {}", project.name));
         ui.label(format!("Описание: {}", project.description));
         ui.label(format!("Дата начала проекта: {}", project.get_date_start()));

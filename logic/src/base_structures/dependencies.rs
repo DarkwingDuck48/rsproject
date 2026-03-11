@@ -16,5 +16,5 @@ pub struct Dependency {
     // ID связанной задачи
     pub dependency_type: DependencyType,
     pub depends_on: Uuid,
-    pub lag: TimeDelta, // Лаг/запас времени
+    pub lag: Option<TimeDelta>, // Лаг/запас времени
 }

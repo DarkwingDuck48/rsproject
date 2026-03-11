@@ -1,8 +1,10 @@
 mod tabs;
 
-use chrono::NaiveDate;
+use chrono::{NaiveDate, Utc};
 use eframe::egui::{self, Widget};
-use logic::{Project, ProjectContainer, SingleProjectContainer};
+use logic::{
+    BasicGettersForStructures, Project, ProjectContainer, SingleProjectContainer, TaskService,
+};
 use tabs::*;
 use uuid::Uuid;
 
@@ -16,6 +18,11 @@ enum Tab {
 struct ProjectApp {
     container: SingleProjectContainer,
     selected_tab: Tab,
+    selected_project_id: Option<Uuid>,
+    selected_task_id: Option<Uuid>,
+    selected_resource_id: Option<Uuid>,
+
+    // Create project dialog
     show_new_project_dialog: bool,
     new_project_name: String,
     new_project_desc: String,
@@ -23,7 +30,21 @@ struct ProjectApp {
     new_project_end: NaiveDate,
     error_message: Option<String>,
 
-    selected_project_id: Option<Uuid>,
+    // Create task dialog
+    show_new_task_dialog: bool,
+    new_task_name: String,
+    new_task_start: NaiveDate,
+    new_task_end: NaiveDate,
+
+    // Create resource dialog
+    show_new_resource_dialog: bool,
+
+    // Assign Resource dialog
+    show_assign_resource_dialog: bool,
+    assign_engagement: String,
+
+    // Add Unavalible period
+    show_unavailable_period_dialog: bool,
 }
 
 impl Default for ProjectApp {
@@ -32,12 +53,22 @@ impl Default for ProjectApp {
             container: SingleProjectContainer::new(),
             selected_tab: Tab::Project,
             show_new_project_dialog: false,
+            show_new_task_dialog: false,
+            show_new_resource_dialog: false,
+            show_assign_resource_dialog: false,
+            show_unavailable_period_dialog: false,
             new_project_name: String::new(),
             new_project_desc: String::new(),
             new_project_start: chrono::Utc::now().date_naive(),
             new_project_end: chrono::Utc::now().date_naive(),
+            new_task_name: String::new(),
+            new_task_start: chrono::Utc::now().date_naive(),
+            new_task_end: chrono::Utc::now().date_naive(),
             error_message: None,
             selected_project_id: None,
+            selected_task_id: None,
+            selected_resource_id: None,
+            assign_engagement: String::new(),
         }
     }
 }
@@ -84,6 +115,38 @@ impl ProjectApp {
             self.show_new_project_dialog = false;
         }
     }
+
+    fn show_new_task_dialog(&mut self, ctx: &egui::Context) {
+        let mut open = true;
+        egui::Window::new("Create Task")
+            .open(&mut open)
+            .show(ctx, |ui| {
+                ui.text_edit_singleline(&mut self.new_task_name);
+                ui.horizontal(|ui| {
+                    ui.label("Start:");
+                    egui_extras::DatePickerButton::new(&mut self.new_task_start)
+                        .id_salt("task_start_picker")
+                        .ui(ui);
+                });
+                ui.horizontal(|ui| {
+                    ui.label("End:");
+                    egui_extras::DatePickerButton::new(&mut self.new_task_end)
+                        .id_salt("task_end_picker")
+                        .ui(ui);
+                });
+                if ui.button("Create").clicked() {
+                    match self.create_task() {
+                        Ok(()) => {
+                            self.show_new_task_dialog = false;
+                        }
+                        Err(e) => self.error_message = Some(e.to_string()),
+                    }
+                }
+            });
+        if !open {
+            self.show_new_task_dialog = false;
+        }
+    }
     fn clear_new_project_fields(&mut self) {}
     fn create_project(&mut self) -> anyhow::Result<()> {
         let project = Project::new(
@@ -97,6 +160,28 @@ impl ProjectApp {
         )?;
         self.container.add_project(project)?;
         Ok(())
+    }
+    fn create_task(&mut self) -> anyhow::Result<()> {
+        eprintln!("create_task called");
+        let project = self.container.list_projects().first().cloned();
+        if let Some(project) = project {
+            let project_id = *project.get_id();
+            eprintln!("Project found: {}", project.name);
+            let start = self.new_task_start.and_hms_opt(0, 0, 0).unwrap().and_utc();
+            let end = self.new_task_end.and_hms_opt(0, 0, 0).unwrap().and_utc();
+
+            let mut task_service = TaskService::new(&mut self.container);
+            task_service.create_task(project_id, self.new_task_name.clone(), start, end)?;
+
+            // Очистить поля
+            self.new_task_name.clear();
+            self.new_task_start = Utc::now().date_naive();
+            self.new_task_end = Utc::now().date_naive();
+            Ok(())
+        } else {
+            eprintln!("No project found");
+            Err(anyhow::anyhow!("No project"))
+        }
     }
 }
 
@@ -135,14 +220,26 @@ impl eframe::App for ProjectApp {
             ui.selectable_value(&mut self.selected_tab, Tab::Resources, "👤 Resources");
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| match self.selected_tab {
-            Tab::Project => project::show(ui, self),
-            Tab::Tasks => task::show(ui, self),
-            Tab::Resources => resources::show(ui, self),
+        egui::CentralPanel::default().show(ctx, |ui| {
+            match self.selected_tab {
+                Tab::Project => project::show(ui, self),
+                Tab::Tasks => task::show(ui, self),
+                Tab::Resources => resources::show(ui, self),
+            }
+
+            // Отображение ошибки (если есть)
+            if let Some(err) = &self.error_message {
+                ui.separator();
+                ui.colored_label(egui::Color32::RED, err);
+            }
         });
 
         if self.show_new_project_dialog {
             self.show_new_project_dialog(ctx);
+        }
+
+        if self.show_new_task_dialog {
+            self.show_new_task_dialog(ctx);
         }
     }
 

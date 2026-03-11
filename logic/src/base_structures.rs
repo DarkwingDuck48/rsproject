@@ -11,7 +11,7 @@ mod traits;
 pub use crate::cust_exceptions::ProjectCreationErrors;
 pub use time_window::TimeWindow;
 
-pub use dependencies::DependencyType;
+pub use dependencies::{Dependency, DependencyType};
 pub use project::Project;
 pub use project_calendar::ProjectCalendar;
 pub use project_containers::SingleProjectContainer;

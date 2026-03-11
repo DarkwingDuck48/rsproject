@@ -157,12 +157,13 @@ impl ResourcePool for LocalResourcePool {
         &mut self,
         request: AllocationRequest,
         calendar: &ProjectCalendar,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Uuid> {
         match self.check_allocation_correct(&request, calendar) {
             Ok(()) => {
                 let allocation = ResourceAllocation::new(request);
+                let allocation_id = allocation.get_id();
                 self.allocations.insert(allocation.get_id(), allocation);
-                Ok(())
+                Ok(allocation_id)
             }
             Err(e) => Err(e),
         }
