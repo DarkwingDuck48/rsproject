@@ -1,7 +1,7 @@
-use std::collections::{HashMap, VecDeque};
-
 use crate::{BasicGettersForStructures, Project, ProjectContainer};
+use anyhow::Context;
 use chrono::{DateTime, TimeDelta, Utc};
+use std::collections::{HashMap, VecDeque};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Default)]
@@ -28,9 +28,9 @@ impl<'a, C: ProjectContainer> Scheduler<'a, C> {
             .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
         let graph = build_graph(project);
         let order = topological_sort(&graph)?;
-        let (es, ef) = forward_pass(*project.get_date_start(), &graph, &order);
-        let (ls, lf) = backward_pass(*project.get_date_end(), &graph, &es, &ef, &order);
-        Ok(find_critical_path(&graph, &es, &ef, &ls, &lf))
+        let (es, ef) = forward_pass(*project.get_date_start(), &graph, &order)?;
+        let (ls, lf) = backward_pass(*project.get_date_end(), &graph, &es, &ef, &order)?;
+        find_critical_path(&graph, &es, &ef, &ls, &lf)
     }
 }
 
@@ -132,41 +132,42 @@ fn forward_pass(
     project_start: DateTime<Utc>,
     graph: &Graph,
     order: &[Uuid],
-) -> (HashMap<Uuid, DateTime<Utc>>, HashMap<Uuid, DateTime<Utc>>) {
+) -> anyhow::Result<(HashMap<Uuid, DateTime<Utc>>, HashMap<Uuid, DateTime<Utc>>)> {
     let mut es = HashMap::new();
     let mut ef = HashMap::new();
 
     for &task_id in order {
-        // Обрабатываем предшественников
         if let Some(preds) = graph.predecessors.get(&task_id) {
-            // Вычисляем максимум из (ef[p] + lag) по всем предшественникам
-            let mut max_ef_plus_lag: Option<DateTime<Utc>> = None;
-            for (pred_id, lag) in preds {
-                let pred_ef = ef
-                    .get(pred_id)
-                    .expect("Predecessor EF not computed – graph order broken");
-                let candidate = *pred_ef + *lag;
-                max_ef_plus_lag = Some(match max_ef_plus_lag {
-                    None => candidate,
-                    Some(prev) => prev.max(candidate),
-                });
+            if preds.is_empty() {
+                // Пустой список предшественников – значит, их нет
+                es.insert(task_id, project_start);
+            } else {
+                let mut max_ef_plus_lag: Option<DateTime<Utc>> = None;
+                for (pred_id, lag) in preds {
+                    let pred_ef = ef.get(pred_id).ok_or_else(|| {
+                        anyhow::anyhow!("Predecessor {} not found in ef", pred_id)
+                    })?;
+                    let candidate = *pred_ef + *lag;
+                    max_ef_plus_lag = Some(match max_ef_plus_lag {
+                        None => candidate,
+                        Some(prev) => prev.max(candidate),
+                    });
+                }
+                es.insert(task_id, max_ef_plus_lag.unwrap()); // здесь `unwrap` безопасен, т.к. список не пуст
             }
-            es.insert(task_id, max_ef_plus_lag.unwrap());
         } else {
-            // Нет предшественников – стартуем в начале проекта
             es.insert(task_id, project_start);
         }
 
-        // Вычисляем ранний финиш
         let duration = graph
             .durations
             .get(&task_id)
-            .expect("Duration missing for task");
+            .ok_or_else(|| anyhow::anyhow!("Duration missing for task {}", task_id))?;
         let finish = es[&task_id] + *duration;
         ef.insert(task_id, finish);
     }
 
-    (es, ef)
+    Ok((es, ef))
 }
 
 fn backward_pass(
@@ -175,39 +176,50 @@ fn backward_pass(
     es: &HashMap<Uuid, DateTime<Utc>>,
     ef: &HashMap<Uuid, DateTime<Utc>>,
     order: &[Uuid],
-) -> (HashMap<Uuid, DateTime<Utc>>, HashMap<Uuid, DateTime<Utc>>) {
-    let max_ef = ef.values().max().copied().expect("No tasks in graph");
+) -> anyhow::Result<(HashMap<Uuid, DateTime<Utc>>, HashMap<Uuid, DateTime<Utc>>)> {
+    let max_ef = ef
+        .values()
+        .max()
+        .copied()
+        .ok_or_else(|| anyhow::anyhow!("No tasks in graph"))?;
 
     let mut ls = HashMap::new();
     let mut lf = HashMap::new();
 
     for &task_id in order.iter().rev() {
-        let duration = graph.durations.get(&task_id).unwrap();
+        let duration = graph
+            .durations
+            .get(&task_id)
+            .ok_or_else(|| anyhow::anyhow!("Duration missing for task {}", task_id))?;
 
         if let Some(succs) = graph.successors.get(&task_id) {
-            // Вычисляем минимум из (ls[succ] - lag) по всем последователям
-            let mut min_ls_minus_lag: Option<DateTime<Utc>> = None;
-            for (succ_id, lag) in succs {
-                let succ_ls = ls
-                    .get(succ_id)
-                    .expect("Successor LS not computed – reverse order broken");
-                let candidate = *succ_ls - *lag;
-                min_ls_minus_lag = Some(match min_ls_minus_lag {
-                    None => candidate,
-                    Some(prev) => prev.min(candidate),
-                });
+            if succs.is_empty() {
+                // Пустой список последователей – считаем, что их нет
+                lf.insert(task_id, max_ef);
+                ls.insert(task_id, max_ef - *duration);
+            } else {
+                let mut min_ls_minus_lag: Option<DateTime<Utc>> = None;
+                for (succ_id, lag) in succs {
+                    let succ_ls = ls
+                        .get(succ_id)
+                        .ok_or_else(|| anyhow::anyhow!("Successor LS not found for {}", succ_id))?;
+                    let candidate = *succ_ls - *lag;
+                    min_ls_minus_lag = Some(match min_ls_minus_lag {
+                        None => candidate,
+                        Some(prev) => prev.min(candidate),
+                    });
+                }
+                let late_finish = min_ls_minus_lag.unwrap(); // безопасен, т.к. список не пуст
+                lf.insert(task_id, late_finish);
+                ls.insert(task_id, late_finish - *duration);
             }
-            let late_finish = min_ls_minus_lag.unwrap();
-            lf.insert(task_id, late_finish);
-            ls.insert(task_id, late_finish - *duration);
         } else {
-            // Нет последователей
             lf.insert(task_id, max_ef);
             ls.insert(task_id, max_ef - *duration);
         }
     }
 
-    (ls, lf)
+    Ok((ls, lf))
 }
 
 fn find_critical_path(
@@ -216,23 +228,26 @@ fn find_critical_path(
     ef: &HashMap<Uuid, DateTime<Utc>>,
     ls: &HashMap<Uuid, DateTime<Utc>>,
     lf: &HashMap<Uuid, DateTime<Utc>>,
-) -> Vec<Uuid> {
-    // Эпсилон для сравнения дат с учётом возможных погрешностей
+) -> anyhow::Result<Vec<Uuid>> {
     const EPSILON: TimeDelta = TimeDelta::milliseconds(1);
 
-    // Проверка, является ли задача критической (резерв <= EPSILON)
-    let is_critical = |id: Uuid| -> bool {
-        let slack = *lf.get(&id).unwrap() - ef.get(&id).unwrap();
-        slack <= EPSILON
+    let is_critical = |id: Uuid| -> anyhow::Result<bool> {
+        let slack = *lf
+            .get(&id)
+            .ok_or_else(|| anyhow::anyhow!("lf missing for {}", id))?
+            - *ef
+                .get(&id)
+                .ok_or_else(|| anyhow::anyhow!("ef missing for {}", id))?;
+        Ok(slack <= EPSILON)
     };
 
     // Находим все критические задачи
-    let critical_tasks: Vec<Uuid> = graph
-        .durations
-        .keys()
-        .copied()
-        .filter(|&id| is_critical(id))
-        .collect();
+    let mut critical_tasks = Vec::new();
+    for &id in graph.durations.keys() {
+        if is_critical(id)? {
+            critical_tasks.push(id);
+        }
+    }
 
     // Стартовые критические задачи (нет предшественников)
     let start_tasks: Vec<Uuid> = critical_tasks
@@ -248,7 +263,7 @@ fn find_critical_path(
         .collect();
 
     if start_tasks.is_empty() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
 
     // Поиск пути от каждой стартовой задачи через критические последователи
@@ -256,16 +271,15 @@ fn find_critical_path(
     let mut max_len = 0;
 
     for start in start_tasks {
-        // Стек для DFS: (текущая вершина, путь от старта)
         let mut stack = vec![(start, vec![start])];
         while let Some((current, path)) = stack.pop() {
-            // Используем if let Some вместо unwrap_or
             if let Some(successors) = graph.successors.get(&current) {
-                let critical_successors: Vec<Uuid> = successors
-                    .iter()
-                    .map(|(id, _)| *id)
-                    .filter(|&id| is_critical(id))
-                    .collect();
+                let mut critical_successors = Vec::new();
+                for (succ_id, _) in successors {
+                    if is_critical(*succ_id)? {
+                        critical_successors.push(*succ_id);
+                    }
+                }
 
                 if critical_successors.is_empty() {
                     if path.len() > max_len {
@@ -279,17 +293,14 @@ fn find_critical_path(
                         stack.push((succ, new_path));
                     }
                 }
-            } else {
-                // Нет последователей – конец пути
-                if path.len() > max_len {
-                    max_len = path.len();
-                    best_path = path.clone();
-                }
+            } else if path.len() > max_len {
+                max_len = path.len();
+                best_path = path.clone();
             }
         }
     }
 
-    best_path
+    Ok(best_path)
 }
 #[cfg(test)]
 mod tests {
@@ -452,7 +463,7 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let order = vec![task_id];
 
-        let (es, ef) = forward_pass(start, &graph, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
 
         assert_eq!(es[&task_id], start);
         assert_eq!(ef[&task_id], start + Duration::days(5));
@@ -464,7 +475,7 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
 
-        let (es, ef) = forward_pass(start, &graph, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
 
         assert_eq!(es[&t1], start);
         assert_eq!(ef[&t1], start + Duration::days(3));
@@ -479,7 +490,7 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
 
-        let (es, ef) = forward_pass(start, &graph, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
 
         assert_eq!(es[&t1], start);
         assert_eq!(ef[&t1], start + Duration::days(3));
@@ -494,7 +505,7 @@ mod tests {
         // Топологический порядок может быть [a, b, c] или [b, a, c] – допустим [a, b, c]
         let order = vec![a, b, c];
 
-        let (es, ef) = forward_pass(start, &graph, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
 
         assert_eq!(es[&a], start);
         assert_eq!(ef[&a], start + Duration::days(2));
@@ -511,8 +522,8 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![task_id];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
 
         assert_eq!(lf[&task_id], ef[&task_id]); // для одной задачи lf = ef
         assert_eq!(ls[&task_id], es[&task_id]);
@@ -524,8 +535,8 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
 
         // Ожидаем, что поздние сроки совпадают с ранними (критический путь)
         assert_eq!(lf[&t1], ef[&t1]);
@@ -541,8 +552,8 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
 
         // t2: поздний финиш = max_ef = ef[t2] (так как t2 без последователей)
         assert_eq!(lf[&t2], ef[&t2]);
@@ -562,8 +573,8 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![a, b, c];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
 
         // max_ef = ef[c]
         let max_ef = ef[&c];
@@ -589,9 +600,9 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![task_id];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
-        let path = find_critical_path(&graph, &es, &ef, &ls, &lf);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        let path = find_critical_path(&graph, &es, &ef, &ls, &lf).unwrap();
         assert_eq!(path, vec![task_id]);
     }
 
@@ -601,9 +612,9 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
-        let path = find_critical_path(&graph, &es, &ef, &ls, &lf);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        let path = find_critical_path(&graph, &es, &ef, &ls, &lf).unwrap();
         assert_eq!(path, vec![t1, t2]);
     }
 
@@ -613,9 +624,9 @@ mod tests {
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![a, b, c];
-        let (es, ef) = forward_pass(start, &graph, &order);
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order);
-        let path = find_critical_path(&graph, &es, &ef, &ls, &lf);
+        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        let path = find_critical_path(&graph, &es, &ef, &ls, &lf).unwrap();
         // Ожидаем, что критический путь b -> c (т.к. b длиннее a)
         assert_eq!(path, vec![b, c]);
     }

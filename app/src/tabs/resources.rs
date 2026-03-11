@@ -1,9 +1,6 @@
 use crate::ProjectApp;
 use eframe::egui::{self, Ui};
-use logic::{
-    BasicGettersForStructures, ExceptionPeriod, ExceptionType, ProjectContainer, RateMeasure,
-    ResourceService, TimeWindow,
-};
+use logic::{ProjectContainer, ResourceService};
 
 pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     ui.heading("Ресурсы");
@@ -16,7 +13,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     ui.separator();
 
     // Получаем текущий проект (если есть) – для календаря и проверок
-    if let Some(project) = app.container.list_projects().first() {
+    if !app.container.list_projects().is_empty() {
         // Создаём сервис ресурсов для чтения (не мутабельно)
         let resource_service = ResourceService::new(&mut app.container);
         let resources = resource_service.list_resources();

@@ -7,10 +7,6 @@ edition = "2024"
 name = "app"
 path = "src/main.rs"
 
-[[bin]]
-name = "app-demo"
-path = "src/main_demo.rs"
-
 [dependencies]
 logic = {path = "../logic"}
 serde = {workspace = true}

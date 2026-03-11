@@ -18,4 +18,4 @@ pub use project_containers::SingleProjectContainer;
 pub use resource::{ExceptionPeriod, ExceptionType, RateMeasure, Resource};
 pub use resource_pool::AllocationRequest;
 pub use tasks::Task;
-pub use traits::{BasicGettersForStructures, ProjectContainer, ResourcePool};
+pub use traits::{BasicGettersForStructures, ProjectContainer};

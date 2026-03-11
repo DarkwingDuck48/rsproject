@@ -94,6 +94,39 @@ impl Default for ProjectApp {
 }
 
 impl ProjectApp {
+    pub fn with_container(container: SingleProjectContainer) -> Self {
+        Self {
+            container,
+            selected_tab: Tab::Project,
+            selected_project_id: None,
+            show_new_project_dialog: false,
+            new_project_name: String::new(),
+            new_project_desc: String::new(),
+            new_project_start: Utc::now().date_naive(),
+            new_project_end: Utc::now().date_naive(),
+            error_message: None,
+            show_new_task_dialog: false,
+            new_task_name: String::new(),
+            new_task_start: Utc::now().date_naive(),
+            new_task_end: Utc::now().date_naive(),
+            show_new_resource_dialog: false,
+            new_resource_name: String::new(),
+            new_resource_rate: String::from("1000"),
+            new_resource_measure: RateMeasure::Hourly,
+            show_assign_resource_dialog: false,
+            selected_task_id: None,
+            selected_resource_id: None,
+            assign_engagement: String::from("0.5"),
+            assign_use_full_window: true,
+            assign_custom_start: Utc::now().date_naive(),
+            assign_custom_end: Utc::now().date_naive(),
+            show_unavailable_period_dialog: false,
+            unavailable_start: Utc::now().date_naive(),
+            unavailable_end: Utc::now().date_naive(),
+            unavailable_type: ExceptionType::Vacation,
+            critical_path: None,
+        }
+    }
     fn show_new_project_dialog(&mut self, ctx: &egui::Context) {
         let mut open = true;
 
@@ -491,6 +524,7 @@ impl eframe::App for ProjectApp {
                 });
             ui.selectable_value(&mut self.selected_tab, Tab::Tasks, "✅ Tasks");
             ui.selectable_value(&mut self.selected_tab, Tab::Resources, "👤 Resources");
+            ui.selectable_value(&mut self.selected_tab, Tab::Gantt, "📊 Gantt")
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {

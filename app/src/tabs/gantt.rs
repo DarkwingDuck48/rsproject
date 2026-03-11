@@ -62,7 +62,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                         .collect();
 
                     let resources_str = if resource_names.is_empty() {
-                        "none".to_string()
+                        format!("{} alloc(s)", task.get_resource_allocations().len())
                     } else {
                         format!("{} alloc(s)", task.get_resource_allocations().len())
                     };
