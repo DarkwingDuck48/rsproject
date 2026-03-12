@@ -18,6 +18,19 @@ pub trait ResourcePool {
     fn get_resources(&self) -> Vec<&Resource>;
     fn get_mut_resource_by_uuid(&mut self, resource_id: Uuid) -> Option<&mut Resource>;
     fn get_resource_existing_allocations(&self, resource_id: &Uuid) -> Vec<&ResourceAllocation>;
+    fn get_allocation(&self, allocation_id: &Uuid) -> Option<&ResourceAllocation>;
+    fn get_resource(&self, resource_id: &Uuid) -> Option<&Resource>;
+    /// Расчет стоимости одного назначения.
+    ///
+    /// # Errors
+    ///
+    /// Функция вернет ошибку в случае если аллокация не будет найдена или не будет передан календарь
+    ///
+    fn calculate_allocation_cost(
+        &self,
+        allocation_id: &Uuid,
+        calendar: &ProjectCalendar,
+    ) -> Result<f64>;
 }
 
 pub trait ProjectContainer {

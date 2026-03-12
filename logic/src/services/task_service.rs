@@ -175,6 +175,35 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
 
         Ok(())
     }
+
+    fn calculate_task_cost(&self, project_id: &Uuid, task_id: &Uuid) -> anyhow::Result<f64> {
+        let project = self
+            .container
+            .get_project(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Проект не найден"))?;
+
+        let task = project
+            .tasks
+            .get(task_id)
+            .ok_or_else(|| anyhow::anyhow!("Задача не найдена"))?;
+
+        let calendar = self
+            .container
+            .calendar(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Календарь для проекта не установлен"))?;
+
+        let mut task_cost = 0.0;
+
+        let resource_pool = self.container.resource_pool();
+
+        for alloc_id in task.get_resource_allocations() {
+            let allocation = resource_pool
+                .get_allocation(alloc_id)
+                .ok_or_else(|| anyhow::anyhow!("Не найдено назначение с номером {}", alloc_id))?;
+        }
+
+        Ok(task_cost)
+    }
 }
 
 #[cfg(test)]

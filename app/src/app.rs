@@ -535,15 +535,17 @@ impl eframe::App for ProjectApp {
                     self.show_new_project_dialog = true;
                     ui.close()
                 }
-                if ui.button("Новый контейнер").clicked() {
-                    self.container = SingleProjectContainer::new();
-                    ui.close();
-                }
-                if ui.button("Сохранить проект").clicked() {
+                // TODO: Пока что у нас нет обработки нескольких контейнеров в одном окне - поэтому этот функционал не используем
+
+                // if ui.button("Новый контейнер").clicked() {
+                //     self.container = SingleProjectContainer::new();
+                //     ui.close();
+                // }
+                if ui.button(" 💾 Сохранить проект").clicked() {
                     self.save_project();
                     ui.close();
                 }
-                if ui.button("Загрузить проект").clicked() {
+                if ui.button(" ⬇︎ Загрузить проект").clicked() {
                     self.load_project();
                     ui.close();
                 }
@@ -571,13 +573,24 @@ impl eframe::App for ProjectApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            match self.selected_tab {
-                Tab::Project => project::show(ui, self),
-                Tab::Tasks => task::show(ui, self),
-                Tab::Resources => resources::show(ui, self),
-                Tab::Gantt => gantt::show(ui, self),
+            if self.container.list_projects().is_empty() {
+                // Приветственный экран, если пусто в контейнере
+                ui.vertical_centered(|ui| {
+                    ui.add_space(50.0);
+                    ui.heading("RS Project - Добро пожаловать");
+                    ui.label("Нет активных проектов");
+                    if ui.button("Создать проект").clicked() {
+                        self.show_new_project_dialog = true;
+                    }
+                });
+            } else {
+                match self.selected_tab {
+                    Tab::Project => project::show(ui, self),
+                    Tab::Tasks => task::show(ui, self),
+                    Tab::Resources => resources::show(ui, self),
+                    Tab::Gantt => gantt::show(ui, self),
+                }
             }
-
             // Отображение ошибки (если есть)
             if let Some(err) = &self.error_message {
                 ui.separator();

@@ -114,6 +114,9 @@ impl Resource {
     pub fn get_base_rate(&self) -> &f64 {
         &self.rate
     }
+
+    // TODO: По хорошему тут должен быть расчет от TimeWindow, чтобы мы смогли сконверировать корректно
+    // в базовом варианте пока принимаем неоторые константы по дням
     pub fn get_converted_rate(&self, to_measure: RateMeasure) -> f64 {
         self.rate_measure.convert(to_measure, self.rate)
     }

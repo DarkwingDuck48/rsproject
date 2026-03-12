@@ -3,9 +3,12 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::base_structures::{
-    project_calendar::ProjectCalendar, resource::Resource, time_window::TimeWindow,
-    traits::ResourcePool,
+use crate::{
+    RateMeasure,
+    base_structures::{
+        project_calendar::ProjectCalendar, resource::Resource, time_window::TimeWindow,
+        traits::ResourcePool,
+    },
 };
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -207,6 +210,42 @@ impl ResourcePool for LocalResourcePool {
 
     fn get_mut_resource_by_uuid(&mut self, resource_id: Uuid) -> Option<&mut Resource> {
         self.resources.get_mut(&resource_id)
+    }
+
+    fn get_allocation(&self, allocation_id: &Uuid) -> Option<&ResourceAllocation> {
+        self.allocations.get(allocation_id)
+    }
+
+    fn get_resource(&self, resource_id: &Uuid) -> Option<&Resource> {
+        self.resources.get(resource_id)
+    }
+
+    fn calculate_allocation_cost(
+        &self,
+        allocation_id: &Uuid,
+        calendar: &ProjectCalendar,
+    ) -> anyhow::Result<f64> {
+        let allocation = self
+            .allocations
+            .get(allocation_id)
+            .ok_or_else(|| anyhow::anyhow!("Не найдено назначение"))?;
+        let resource = self
+            .resources
+            .get(&allocation.resource_id)
+            .ok_or_else(|| anyhow::anyhow!("Ресурс из назначения не найден!"))?;
+        // Определяем длительность работы из назначения
+
+        let hours = allocation.time_window.duration_hours() as f64;
+
+        let hourly_rate = match resource.get_rate_measure() {
+            RateMeasure::Hourly => *resource.get_base_rate(),
+            RateMeasure::Daily => resource.get_base_rate() / calendar.working_hours_per_day as f64,
+            RateMeasure::Monthly => {
+                resource.get_base_rate()
+                    / calendar.working_hours_in_period(&allocation.time_window) as f64
+            }
+        };
+        Ok(hourly_rate * hours * allocation.engagement_rate)
     }
 }
 

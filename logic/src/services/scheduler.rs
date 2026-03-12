@@ -1,5 +1,4 @@
 use crate::{BasicGettersForStructures, Project, ProjectContainer};
-use anyhow::Context;
 use chrono::{DateTime, TimeDelta, Utc};
 use std::collections::{HashMap, VecDeque};
 use uuid::Uuid;
@@ -128,11 +127,13 @@ fn topological_sort(graph: &Graph) -> anyhow::Result<Vec<Uuid>> {
     Ok(order)
 }
 
+type HashUuidDateTime = HashMap<Uuid, DateTime<Utc>>;
+
 fn forward_pass(
     project_start: DateTime<Utc>,
     graph: &Graph,
     order: &[Uuid],
-) -> anyhow::Result<(HashMap<Uuid, DateTime<Utc>>, HashMap<Uuid, DateTime<Utc>>)> {
+) -> anyhow::Result<(HashUuidDateTime, HashUuidDateTime)> {
     let mut es = HashMap::new();
     let mut ef = HashMap::new();
 
@@ -176,7 +177,7 @@ fn backward_pass(
     es: &HashMap<Uuid, DateTime<Utc>>,
     ef: &HashMap<Uuid, DateTime<Utc>>,
     order: &[Uuid],
-) -> anyhow::Result<(HashMap<Uuid, DateTime<Utc>>, HashMap<Uuid, DateTime<Utc>>)> {
+) -> anyhow::Result<(HashUuidDateTime, HashUuidDateTime)> {
     let max_ef = ef
         .values()
         .max()

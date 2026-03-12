@@ -52,7 +52,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                     let resource_names: Vec<String> = task
                         .get_resource_allocations()
                         .iter()
-                        .filter_map(|alloc_id| {
+                        .filter_map(|_alloc_id| {
                             // Получаем аллокацию из пула ресурсов (нужен доступ к ResourcePool)
                             // Пока упростим: будем хранить ID, но для отображения имён нужен доступ к ресурсам.
                             // Лучше передать ResourceService, но для простоты пока оставим заглушку.
