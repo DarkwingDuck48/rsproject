@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::base_structures::{
@@ -7,7 +8,7 @@ use crate::base_structures::{
     traits::ResourcePool,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct AllocationRequest {
     resource_id: Uuid,
     task_id: Uuid,
@@ -62,7 +63,7 @@ impl<'a> AllocationQueryResult<'a> {
 }
 
 // Объект для описания назначения одного из ресурсов на задачу
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct ResourceAllocation {
     id: Uuid,
     resource_id: Uuid,
@@ -93,7 +94,7 @@ impl ResourceAllocation {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct LocalResourcePool {
     resources: HashMap<Uuid, Resource>,
     allocations: HashMap<Uuid, ResourceAllocation>,

@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 /// Модуль для хранения известных контейнеров проектов
 ///
 /// Будем реализовывать 2 контейнера - одиночный и мульти контейнер
@@ -15,6 +16,7 @@ use crate::{
     },
 };
 
+#[derive(Serialize, Deserialize)]
 pub struct SingleProjectContainer {
     project: Option<Project>,
     resource_pool: LocalResourcePool,

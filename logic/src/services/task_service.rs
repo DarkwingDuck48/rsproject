@@ -1,3 +1,4 @@
+/// Описательная часть по сервису работы с Задачами в приложении
 use crate::{
     Project, TimeWindow,
     base_structures::{

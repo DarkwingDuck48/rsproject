@@ -5,6 +5,7 @@ use logic::{
     BasicGettersForStructures, ExceptionPeriod, ExceptionType, Project, ProjectContainer,
     RateMeasure, ResourceService, SingleProjectContainer, TaskService, TimeWindow,
 };
+use rfd::FileDialog;
 use uuid::Uuid;
 
 #[derive(PartialEq)]
@@ -489,6 +490,40 @@ impl ProjectApp {
         )?;
         Ok(())
     }
+
+    fn save_project(&mut self) {
+        if let Some(path) = FileDialog::new().add_filter("JSON", &["json"]).save_file() {
+            match serde_json::to_string_pretty(&self.container) {
+                Ok(json) => {
+                    if let Err(e) = std::fs::write(&path, json) {
+                        self.error_message = Some(format!("Ошибка записи файла: {}", e));
+                    } else {
+                        self.error_message = None;
+                    }
+                }
+                Err(e) => {
+                    self.error_message = Some(format!("Ошибка создания файла проекта: {}", e))
+                }
+            }
+        }
+    }
+
+    fn load_project(&mut self) {
+        if let Some(path) = FileDialog::new().add_filter("JSON", &["json"]).pick_file() {
+            match std::fs::read_to_string(&path) {
+                Ok(content) => match serde_json::from_str::<SingleProjectContainer>(&content) {
+                    Ok(container) => {
+                        self.container = container;
+                        self.error_message = None;
+                    }
+                    Err(e) => {
+                        self.error_message = Some(format!("Ошибка парсинга файла проекта: {}", e))
+                    }
+                },
+                Err(e) => self.error_message = Some(format!("Ошибка чтения файла проекта: {}", e)),
+            }
+        }
+    }
 }
 
 impl eframe::App for ProjectApp {
@@ -502,6 +537,14 @@ impl eframe::App for ProjectApp {
                 }
                 if ui.button("Новый контейнер").clicked() {
                     self.container = SingleProjectContainer::new();
+                    ui.close();
+                }
+                if ui.button("Сохранить проект").clicked() {
+                    self.save_project();
+                    ui.close();
+                }
+                if ui.button("Загрузить проект").clicked() {
+                    self.load_project();
                     ui.close();
                 }
                 ui.separator();

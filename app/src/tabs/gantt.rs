@@ -64,7 +64,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                     let resources_str = if resource_names.is_empty() {
                         format!("{} alloc(s)", task.get_resource_allocations().len())
                     } else {
-                        format!("{} alloc(s)", task.get_resource_allocations().len())
+                        resource_names.join(";")
                     };
 
                     // Проверка, находится ли задача на критическом пути
