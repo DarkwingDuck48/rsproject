@@ -60,6 +60,35 @@ impl<'a, C: ProjectContainer> ResourceService<'a, C> {
             .map(|ra| *ra.get_engagement_rate())
             .sum()
     }
+
+    /// Расчет стоимости ресурса за проект
+    pub fn calculate_resource_cost(&self, resource_id: Uuid, project_id: &Uuid) -> Result<f64> {
+        let resource = self
+            .container
+            .resource_pool()
+            .get_resource(&resource_id)
+            .ok_or_else(|| anyhow::anyhow!("Resource with id {} not found", resource_id))?;
+
+        let calendar = self
+            .container
+            .calendar(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Calendar for project {} not found", project_id))?;
+
+        let allocations = self
+            .container
+            .resource_pool()
+            .get_resource_existing_allocations(&resource_id);
+
+        let mut total_cost = 0.0;
+        for alloc in allocations {
+            total_cost += self
+                .container
+                .resource_pool()
+                .calculate_allocation_cost(&alloc.get_id(), calendar)?;
+        }
+
+        Ok(total_cost)
+    }
 }
 
 #[cfg(test)]

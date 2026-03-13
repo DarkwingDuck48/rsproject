@@ -19,7 +19,7 @@ enum Tab {
 pub struct ProjectApp {
     pub container: SingleProjectContainer,
     selected_tab: Tab,
-    selected_project_id: Option<Uuid>,
+    pub selected_project_id: Option<Uuid>,
     pub(crate) selected_task_id: Option<Uuid>,
     pub selected_resource_id: Option<Uuid>,
     pub critical_path: Option<Vec<Uuid>>,
@@ -96,10 +96,15 @@ impl Default for ProjectApp {
 
 impl ProjectApp {
     pub fn with_container(container: SingleProjectContainer) -> Self {
+        let project_id = container
+            .list_projects()
+            .first()
+            .map(|p| *p.get_id())
+            .unwrap_or_else(Uuid::new_v4);
         Self {
             container,
             selected_tab: Tab::Project,
-            selected_project_id: None,
+            selected_project_id: Some(project_id),
             show_new_project_dialog: false,
             new_project_name: String::new(),
             new_project_desc: String::new(),
@@ -392,6 +397,7 @@ impl ProjectApp {
             self.new_project_end.and_hms_opt(0, 0, 0).unwrap().and_utc(),
         )?;
         self.container.add_project(project)?;
+        self.selected_project_id = self.container.list_projects().last().map(|p| *p.get_id());
         Ok(())
     }
     fn create_task(&mut self) -> anyhow::Result<()> {

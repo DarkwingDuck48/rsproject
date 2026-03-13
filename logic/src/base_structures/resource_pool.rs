@@ -235,8 +235,7 @@ impl ResourcePool for LocalResourcePool {
             .ok_or_else(|| anyhow::anyhow!("Ресурс из назначения не найден!"))?;
         // Определяем длительность работы из назначения
 
-        let hours = allocation.time_window.duration_hours() as f64;
-
+        let hours = allocation.time_window.duration_hours(calendar) as f64;
         let hourly_rate = match resource.get_rate_measure() {
             RateMeasure::Hourly => *resource.get_base_rate(),
             RateMeasure::Daily => resource.get_base_rate() / calendar.working_hours_per_day as f64,
@@ -260,6 +259,38 @@ mod tests {
         time_window::TimeWindow,
         traits::ResourcePool,
     };
+
+    #[test]
+    fn test_calculate_cost() {
+        let mut lrp = LocalResourcePool::default();
+        let project_calendar = ProjectCalendar::default();
+        let resource = Resource::new(String::from("Test"), 1000.0, RateMeasure::Hourly)
+            .expect("Can't create resource");
+        lrp.add_resource(resource.clone()).unwrap();
+        let project_id = uuid::Uuid::new_v4();
+
+        let allocation_request = AllocationRequest::new(
+            resource.id,
+            uuid::Uuid::new_v4(),
+            project_id,
+            0.8,
+            TimeWindow::new(
+                Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap(),
+                Utc.with_ymd_and_hms(2025, 1, 11, 0, 0, 0).unwrap(),
+            )
+            .unwrap(),
+        );
+
+        let allocation_id = lrp.allocate(allocation_request, &project_calendar).unwrap();
+        let cost = lrp
+            .calculate_allocation_cost(&allocation_id, &project_calendar)
+            .unwrap();
+        // cost = hourly_rate * hours * engagement_rate
+        // hourly_rate = 1000
+        // hours = 8 working days * 8 hours/day = 64 hours
+        // engagement_rate = 0.8
+        assert_eq!(cost, 1000.0 * 64.0 * 0.8);
+    }
 
     #[test]
     fn test_deallocate() {

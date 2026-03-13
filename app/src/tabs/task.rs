@@ -1,6 +1,6 @@
 use crate::ProjectApp;
 use eframe::egui::{self, Ui};
-use logic::{BasicGettersForStructures, ProjectContainer};
+use logic::{BasicGettersForStructures, ProjectContainer, TaskService};
 
 pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     ui.heading("Задачи");
@@ -10,13 +10,13 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     ui.separator();
 
     // Получаем текущий проект (если есть)
-    if let Some(project) = app.container.list_projects().first() {
-        // Создаём сервис задач для чтения (не мутабельно, так как мы только читаем)
-        // Для чтения можно использовать &container, но TaskService требует &mut, поэтому создадим временный сервис
-        // Можно обойтись без сервиса, просто получить задачи из проекта.
-        let tasks = project.get_project_tasks();
+    if !app.container.list_projects().is_empty() {
+        let task_service = TaskService::new(&mut app.container);
+        let project = task_service
+            .get_project(&app.selected_project_id.unwrap())
+            .unwrap();
         let project_name = project.name.clone();
-
+        let tasks = task_service.get_tasks(project.get_id());
         if tasks.is_empty() {
             ui.label("No tasks yet. Click 'Add Task' to create one.");
         } else {
@@ -28,6 +28,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                     ui.label("Name");
                     ui.label("Start");
                     ui.label("End");
+                    ui.label("Task Cost");
                     ui.label("Status");
                     ui.label("Actions");
                     ui.end_row();
@@ -37,6 +38,10 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                         ui.label(&task.name);
                         ui.label(task.get_date_start().format("%Y-%m-%d").to_string());
                         ui.label(task.get_date_end().format("%Y-%m-%d").to_string());
+                        match task_service.calculate_task_cost(project.get_id(), task.get_id()) {
+                            Ok(cost) => ui.label(format!("{:.2}", cost)),
+                            Err(e) => ui.colored_label(egui::Color32::RED, format!("ERR: {}", e)),
+                        };
                         ui.label(format!("{:?}", task.get_status()));
 
                         // Кнопка назначения ресурса (пока заглушка)

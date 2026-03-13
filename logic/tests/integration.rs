@@ -9,8 +9,8 @@ fn test_full_scenario() -> anyhow::Result<()> {
     let mut container = SingleProjectContainer::new();
 
     // Создаем проект внутри контейнера
-    let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-    let end = Utc.with_ymd_and_hms(2025, 12, 31, 0, 0, 0).unwrap();
+    let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    let end = Utc.with_ymd_and_hms(2026, 12, 31, 0, 0, 0).unwrap();
     let project = Project::new("Test", "Integration test", start, end)?;
     let project_id = *project.get_id();
     container.add_project(project)?;
@@ -18,8 +18,8 @@ fn test_full_scenario() -> anyhow::Result<()> {
     // Создание задачи через отдельный выделенный namespace
     let (task_id, task_start, task_end) = {
         let mut task_service = TaskService::new(&mut container);
-        let task_start = Utc.with_ymd_and_hms(2025, 2, 1, 0, 0, 0).unwrap();
-        let task_end = Utc.with_ymd_and_hms(2025, 2, 15, 0, 0, 0).unwrap();
+        let task_start = Utc.with_ymd_and_hms(2026, 2, 1, 0, 0, 0).unwrap();
+        let task_end = Utc.with_ymd_and_hms(2026, 2, 15, 0, 0, 0).unwrap();
 
         let task = task_service.create_task(project_id, "Design".into(), task_start, task_end)?;
         let task_id = *task.get_id();
@@ -55,6 +55,15 @@ fn test_full_scenario() -> anyhow::Result<()> {
         resource_service.get_resource_utilization(resource_id)
     };
     assert_eq!(utilization, 0.8);
+
+    // Проверяем стоимость задачи
+    let task_cost = {
+        let task_service = TaskService::new(&mut container);
+        task_service.calculate_task_cost(&project_id, &task_id)?
+    };
+    eprintln!("Calculated task cost: {}", task_cost);
+    // 80 часов (10 рабочих дней) * 0.8 engagement rate * 1000 hourly rate
+    assert!(task_cost == 1000.0 * 0.8 * 80.0);
 
     Ok(())
 }
