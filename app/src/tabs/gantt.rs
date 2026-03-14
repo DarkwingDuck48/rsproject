@@ -6,6 +6,17 @@ use logic::{BasicGettersForStructures, ProjectContainer, Scheduler};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+type TaskDataMap = HashMap<
+    Uuid,
+    (
+        String,
+        chrono::DateTime<chrono::Utc>,
+        chrono::DateTime<chrono::Utc>,
+        bool,
+        Option<Uuid>,
+    ),
+>;
+
 struct GanttTaskData {
     id: Uuid,
     name: String,
@@ -76,154 +87,88 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
 
     let day_width = app.gantt_day_width.max(8.0);
     let left_col_width = 250.0;
+    let calendar = app.container.calendar(&project_id).unwrap();
 
-    ui.horizontal(|ui| {
-        // Левая часть: диаграмма Ганта
-        ui.vertical(|ui| {
-            // Постараемся занять большую часть ширины и высоты под диаграмму
-            let w = ui.available_width();
-            ui.set_min_width((w * 0.7).max(300.0));
-            ui.set_min_height(720.0);
+    ui.vertical(|ui| {
+        ui.set_min_height(720.0);
+        ui.set_width(ui.available_width());
 
-            egui::ScrollArea::both()
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    TableBuilder::new(ui)
-                        .column(Column::exact(left_col_width))
-                        .columns(Column::exact(day_width), total_days + 1)
-                        .header(25.0, |mut header| {
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                TableBuilder::new(ui)
+                    .column(Column::exact(left_col_width))
+                    .columns(Column::exact(day_width), total_days + 1)
+                    .header(25.0, |mut header| {
+                        header.col(|ui| {
+                            ui.strong("Задача");
+                        });
+                        for day_offset in 0..=total_days {
+                            let date = min_date + chrono::Duration::days(day_offset as i64);
                             header.col(|ui| {
-                                ui.strong("Задача");
-                            });
-                            for day_offset in 0..=total_days {
-                                let date = min_date + chrono::Duration::days(day_offset as i64);
-                                header.col(|ui| {
-                                    ui.vertical_centered(|ui| {
-                                        ui.label(date.format("%d/%m").to_string());
-                                    });
+                                ui.vertical_centered(|ui| {
+                                    ui.colored_label(
+                                        Color32::BLACK,
+                                        date.format("%d/%m").to_string(),
+                                    )
                                 });
-                            }
-                        })
-                        .body(|body| {
-                            body.rows(25.0, visible_tasks.len(), |mut row| {
-                                let task = visible_tasks[row.index()];
+                            });
+                        }
+                    })
+                    .body(|body| {
+                        body.rows(25.0, visible_tasks.len(), |mut row| {
+                            let task = visible_tasks[row.index()];
 
-                                // Колонка с именем задачи (кликабельная)
-                                row.col(|ui| {
-                                    let mut clicked = false;
-                                    ui.horizontal(|ui| {
-                                        ui.add_space(task.depth as f32 * 20.0);
-                                        if task.is_critical {
-                                            ui.colored_label(Color32::RED, "🔴");
-                                        }
-                                        let selected = app.selected_task_id == Some(task.id);
-                                        let label = if task.is_summary {
-                                            format!("📁 {}", task.name)
-                                        } else {
-                                            task.name.clone()
-                                        };
-                                        if ui.selectable_label(selected, label).clicked() {
-                                            clicked = true;
-                                        }
-                                    });
-                                    if clicked {
+                            // Колонка с именем задачи (кликабельная + контекстное меню)
+                            row.col(|ui| {
+                                ui.horizontal(|ui| {
+                                    ui.set_width(ui.available_width());
+                                    ui.add_space(task.depth as f32 * 20.0);
+                                    if task.is_critical {
+                                        ui.colored_label(Color32::RED, "🔴");
+                                    }
+                                    let selected = app.selected_task_id == Some(task.id);
+                                    let label = if task.is_summary {
+                                        format!("📁 {}", task.name)
+                                    } else {
+                                        task.name.clone()
+                                    };
+                                    let response = ui.selectable_label(selected, label);
+                                    if response.clicked() {
                                         app.selected_task_id = Some(task.id);
                                     }
-                                });
-
-                                // Колонки для каждого дня
-                                for day_offset in 0..=total_days {
-                                    row.col(|ui| {
-                                        let date =
-                                            min_date + chrono::Duration::days(day_offset as i64);
-                                        let is_active =
-                                            date >= task.start_date && date <= task.end_date;
-
-                                        if is_active {
-                                            let color = if task.is_critical {
-                                                Color32::RED
-                                            } else if task.is_summary {
-                                                Color32::from_rgb(255, 255, 200)
-                                            } else {
-                                                Color32::LIGHT_BLUE
-                                            };
-                                            ui.painter().rect_filled(ui.max_rect(), 0.0, color);
+                                    response.context_menu(|ui| {
+                                        if ui.button("Детали").clicked() {
+                                            app.details_task_id = Some(task.id);
+                                            app.show_task_details_dialog = true;
+                                            ui.close();
                                         }
                                     });
-                                }
-
-                                // row.response() не используем для клика, т.к. клики съедают виджеты в ячейках
+                                });
                             });
+
+                            // Колонки для каждого дня
+                            for day_offset in 0..=total_days {
+                                row.col(|ui| {
+                                    let date = min_date + chrono::Duration::days(day_offset as i64);
+                                    let is_active =
+                                        date >= task.start_date && date <= task.end_date;
+                                    let is_weekend = !calendar.is_working_day(date.date_naive());
+                                    let is_critical = task.is_critical;
+
+                                    let color = match (is_active, is_weekend, is_critical) {
+                                        (true, true, _) => Color32::from_rgb(240, 240, 240),
+                                        (false, true, _) => Color32::from_rgb(240, 240, 240),
+                                        (true, false, true) => Color32::from_rgb(255, 0, 0),
+                                        (true, false, false) => Color32::LIGHT_BLUE,
+                                        (false, false, _) => Color32::WHITE,
+                                    };
+                                    ui.painter().rect_filled(ui.max_rect(), 3.0, color);
+                                });
+                            }
                         });
-                });
-        });
-
-        ui.separator();
-
-        // Правая часть: панель деталей задачи
-        ui.vertical(|ui| {
-            ui.set_min_width(260.0);
-            ui.heading("Детали задачи");
-            if let Some(selected_id) = app.selected_task_id {
-                let project_id = *app.selected_project_id.as_ref().unwrap();
-
-                // Сначала читаем задачу и её стоимость, а нужные данные копируем в локальные переменные.
-                let (task_name, task_cost, alloc_ids) = {
-                    let task_service = logic::TaskService::new(&mut app.container);
-                    if let Some(project) = task_service.get_project(&project_id) {
-                        if let Some(task) = project.tasks.get(&selected_id) {
-                            let name = task.name.clone();
-                            let alloc_ids = task.get_resource_allocations().clone();
-                            let cost = task_service
-                                .calculate_task_cost(&project_id, &selected_id)
-                                .unwrap_or(0.0);
-                            (Some(name), Some(cost), alloc_ids)
-                        } else {
-                            (None, None, Vec::new())
-                        }
-                    } else {
-                        (None, None, Vec::new())
-                    }
-                };
-
-                if let Some(name) = task_name {
-                    ui.label(format!("Имя: {}", name));
-                }
-                if let Some(cost) = task_cost {
-                    ui.label(format!("Стоимость задачи: {:.2}", cost));
-                }
-
-                ui.separator();
-                ui.strong("Назначенные ресурсы:");
-
-                if let Some(calendar) = app.container.calendar(&project_id) {
-                    let pool = app.container.resource_pool();
-                    for alloc_id in alloc_ids {
-                        if let Some(allocation) = pool.get_allocation(&alloc_id)
-                            && let Some(resource) = pool.get_resource(allocation.get_resource_id())
-                        {
-                            let tw = allocation.get_time_window();
-                            let hours = tw.duration_hours(calendar) as f64
-                                * allocation.get_engagement_rate();
-                            let cost = pool
-                                .calculate_allocation_cost(&alloc_id, calendar)
-                                .unwrap_or(0.0);
-                            ui.separator();
-                            ui.label(format!("Ресурс: {}", resource.name));
-                            ui.label(format!(
-                                "Период: {} - {}",
-                                tw.date_start.format("%Y-%m-%d"),
-                                tw.date_end.format("%Y-%m-%d")
-                            ));
-                            ui.label(format!("Часы: {:.1}", hours));
-                            ui.label(format!("Стоимость ресурса: {:.2}", cost));
-                        }
-                    }
-                }
-            } else {
-                ui.label("Выберите задачу на диаграмме для просмотра деталей.");
-            }
-        });
+                    });
+            });
     });
 }
 
@@ -236,16 +181,7 @@ fn collect_gantt_data(
     let all_tasks = task_service.get_all_tasks(project_id);
 
     let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
-    let mut tasks_data: HashMap<
-        Uuid,
-        (
-            String,
-            chrono::DateTime<chrono::Utc>,
-            chrono::DateTime<chrono::Utc>,
-            bool,
-            Option<Uuid>,
-        ),
-    > = HashMap::new();
+    let mut tasks_data: TaskDataMap = HashMap::new();
 
     for task in all_tasks {
         tasks_data.insert(
@@ -266,16 +202,7 @@ fn collect_gantt_data(
     fn add_with_depth(
         id: Uuid,
         depth: usize,
-        tasks_data: &mut HashMap<
-            Uuid,
-            (
-                String,
-                chrono::DateTime<chrono::Utc>,
-                chrono::DateTime<chrono::Utc>,
-                bool,
-                Option<Uuid>,
-            ),
-        >,
+        tasks_data: &mut TaskDataMap,
         children_map: &HashMap<Uuid, Vec<Uuid>>,
         critical_path: &[Uuid],
         result: &mut Vec<GanttTaskData>,
