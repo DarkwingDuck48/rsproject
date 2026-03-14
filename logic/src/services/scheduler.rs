@@ -37,6 +37,10 @@ fn build_graph(project: &Project) -> Graph {
     let tasks = project.get_project_tasks();
     let mut graph = Graph::default();
     for task in tasks {
+        if task.is_summary {
+            // Групповые задачи исключаются из расчетного критического пути
+            continue;
+        }
         let task_id = *task.get_id();
         graph.durations.insert(task_id, *task.get_duration());
 

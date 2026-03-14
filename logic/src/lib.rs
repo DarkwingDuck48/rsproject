@@ -8,6 +8,7 @@ pub use base_structures::BasicGettersForStructures;
 pub use base_structures::DependencyType;
 pub use base_structures::{
     ExceptionPeriod, ExceptionType, Project, ProjectContainer, RateMeasure, SingleProjectContainer,
-    TimeWindow,
+    Task, TimeWindow,
 };
+
 pub use services::{ResourceService, Scheduler, TaskService};

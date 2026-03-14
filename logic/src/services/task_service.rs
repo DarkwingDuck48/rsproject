@@ -22,13 +22,74 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         self.container.get_project(project_id)
     }
 
+    pub fn get_all_tasks(&self, project_id: Uuid) -> Vec<&Task> {
+        self.container
+            .get_project(&project_id)
+            .map(|p| p.tasks.values().collect())
+            .unwrap_or_default()
+    }
+    fn update_summary_dates(&mut self, project_id: &Uuid, task_id: Uuid) -> Result<()> {
+        let mut current = task_id;
+        loop {
+            let (new_start, new_end) = {
+                let project = self
+                    .container
+                    .get_project(project_id)
+                    .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+                let task = project
+                    .tasks
+                    .get(&current)
+                    .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
+                if !task.is_summary {
+                    break; // не суммарная – дальше не идём
+                }
+                let children = self.get_subtasks(project_id, current);
+                if children.is_empty() {
+                    break; // нет детей – не меняем
+                }
+                let min_start = children.iter().map(|t| *t.get_date_start()).min().unwrap();
+                let max_end = children.iter().map(|t| *t.get_date_end()).max().unwrap();
+                (min_start, max_end)
+            };
+            // Обновляем задачу
+            {
+                let project = self
+                    .container
+                    .get_project_mut(project_id)
+                    .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+                let task = project
+                    .tasks
+                    .get_mut(&current)
+                    .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
+                task.date_start = new_start;
+                task.date_end = new_end;
+                task.duration = new_end - new_start;
+            }
+
+            // Поднимаемся к родителю
+            let parent = {
+                let project = self
+                    .container
+                    .get_project(project_id)
+                    .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+                project.tasks.get(&current).and_then(|t| t.parent_id)
+            };
+            match parent {
+                Some(pid) => current = pid,
+                None => break,
+            }
+        }
+        Ok(())
+    }
+
     // Создание задачи
-    pub fn create_task(
+    pub fn create_regular_task(
         &mut self,
         project_id: Uuid,
         name: String,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
+        parent_id: Option<Uuid>,
     ) -> Result<Task> {
         let project = self
             .container
@@ -40,9 +101,48 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             anyhow::bail!("Task dates must be within project dates");
         }
 
-        let task = Task::new(name, start, end)?;
+        if let Some(p_id) = parent_id
+            && !project.tasks.contains_key(&p_id)
+        {
+            anyhow::bail!("Не найдена родительская задача")
+        }
+
+        let task = Task::new_regular(name, start, end, parent_id)?;
         let task_id = *task.get_id();
         project.tasks.insert(task_id, task.clone());
+
+        if let Some(pid) = parent_id {
+            self.update_summary_dates(&project_id, pid)?;
+        }
+        Ok(task)
+    }
+
+    /// Создание группирующей задачи
+    /// Особенность в том, что мы не принимаем на вход даты начала и окончания
+    /// Их мы вычисляем по ходу работы, когда в группирующую задачу будут добавляться новые задачи.
+    /// При инициализации задачи - датой начала и окончания ставим даты начала и окончания проекта.
+    ///
+    pub fn create_summary_task(
+        &mut self,
+        project_id: Uuid,
+        name: String,
+        parent_id: Option<Uuid>,
+    ) -> Result<Task> {
+        let project = self
+            .container
+            .get_project_mut(&project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        let start = *project.get_date_start();
+        let end = *project.get_date_end();
+
+        let task = Task::new_summary(name, start, end, parent_id)?;
+        let task_id = *task.get_id();
+        project.tasks.insert(task_id, task.clone());
+
+        if let Some(pid) = parent_id {
+            self.update_summary_dates(&project_id, pid)?;
+        }
         Ok(task)
     }
 
@@ -53,6 +153,24 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             .unwrap_or_default()
     }
 
+    pub fn get_root_tasks(&self, project_id: Uuid) -> Vec<&Task> {
+        self.container
+            .get_project(&project_id)
+            .map(|p| p.tasks.values().filter(|t| t.parent_id.is_none()).collect())
+            .unwrap_or_default()
+    }
+
+    pub fn get_subtasks(&self, project_id: &Uuid, parent_id: Uuid) -> Vec<&Task> {
+        self.container
+            .get_project(project_id)
+            .map(|p| {
+                p.tasks
+                    .values()
+                    .filter(|t| t.parent_id == Some(parent_id))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
     // Присвоить задаче ресурс
     // Мы должны создать запрос на аллокацию ресурса и отправить его в ресурсы, чтобы мы смогли их назначить
     // Вообще предполагается, что ресурс назначается на весь промежуток задачи, однако мы можем явно указать период, на который ресурс будет зайствован
@@ -187,24 +305,32 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             .get(task_id)
             .ok_or_else(|| anyhow::anyhow!("Задача не найдена"))?;
 
-        let calendar = self
-            .container
-            .calendar(project_id)
-            .ok_or_else(|| anyhow::anyhow!("Календарь для проекта не установлен"))?;
-
-        let mut task_cost = 0.0;
-
-        let resource_pool = self.container.resource_pool();
-
-        for alloc_id in task.get_resource_allocations() {
+        if task.is_summary {
+            let subtasks = self.get_subtasks(project_id, *task.get_id());
+            let mut total_cost = 0.0;
+            for sub in subtasks {
+                total_cost += self.calculate_task_cost(project_id, sub.get_id())?;
+            }
+            Ok(total_cost)
+        } else {
             let calendar = self
                 .container
                 .calendar(project_id)
-                .ok_or_else(|| anyhow::anyhow!("Календарь для проекта {} не найден", project_id))?;
-            task_cost += resource_pool.calculate_allocation_cost(alloc_id, calendar)?;
-        }
+                .ok_or_else(|| anyhow::anyhow!("Календарь для проекта не установлен"))?;
 
-        Ok(task_cost)
+            let mut task_cost = 0.0;
+
+            let resource_pool = self.container.resource_pool();
+
+            for alloc_id in task.get_resource_allocations() {
+                let calendar = self.container.calendar(project_id).ok_or_else(|| {
+                    anyhow::anyhow!("Календарь для проекта {} не найден", project_id)
+                })?;
+                task_cost += resource_pool.calculate_allocation_cost(alloc_id, calendar)?;
+            }
+
+            Ok(task_cost)
+        }
     }
 }
 
@@ -237,7 +363,7 @@ mod tests {
         let task_end = Utc.with_ymd_and_hms(2025, 2, 15, 0, 0, 0).unwrap();
         let mut task_service = TaskService::new(&mut container);
         let task = task_service
-            .create_task(project_id, "Task".into(), task_start, task_end)
+            .create_regular_task(project_id, "Task".into(), task_start, task_end, None)
             .unwrap();
         let task_id = *task.get_id();
 
@@ -420,7 +546,7 @@ mod tests {
         let task_start = Utc.with_ymd_and_hms(2025, 2, 1, 0, 0, 0).unwrap();
         let task_end = Utc.with_ymd_and_hms(2025, 2, 15, 0, 0, 0).unwrap();
         let task = task_service
-            .create_task(project_id, "task1".into(), task_start, task_end)
+            .create_regular_task(project_id, "task1".into(), task_start, task_end, None)
             .expect("Failed to create task");
 
         assert_eq!(task.name, "task1");
@@ -439,19 +565,21 @@ mod tests {
 
         let mut task_service = TaskService::new(&mut container);
         let task1 = task_service
-            .create_task(
+            .create_regular_task(
                 project_id,
                 "Task1".into(),
                 Utc.with_ymd_and_hms(2025, 2, 1, 0, 0, 0).unwrap(),
                 Utc.with_ymd_and_hms(2025, 2, 10, 0, 0, 0).unwrap(),
+                None,
             )
             .unwrap();
         let task2 = task_service
-            .create_task(
+            .create_regular_task(
                 project_id,
                 "Task2".into(),
                 Utc.with_ymd_and_hms(2025, 2, 11, 0, 0, 0).unwrap(),
                 Utc.with_ymd_and_hms(2025, 2, 20, 0, 0, 0).unwrap(),
+                None,
             )
             .unwrap();
         (container, project_id, *task1.get_id(), *task2.get_id())

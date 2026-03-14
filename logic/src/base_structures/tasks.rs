@@ -27,22 +27,60 @@ pub enum TaskStatus {
 /// status - статус задачи
 /// resource_allocations - назначенные ресурсы
 /// dependencies - зависимые задачи (предшественники)
+/// parent_id - UUID группирующей задачи
+/// is_summary - признак, является ли задача группирующей
 pub struct Task {
     id: Uuid,
     pub name: String,
-    date_start: DateTime<Utc>,
-    date_end: DateTime<Utc>,
-    duration: TimeDelta,
+    pub date_start: DateTime<Utc>,
+    pub date_end: DateTime<Utc>,
+    pub duration: TimeDelta,
     status: TaskStatus,
     resource_allocations: Vec<Uuid>,
     dependencies: Vec<Dependency>,
+    pub parent_id: Option<Uuid>,
+    pub is_summary: bool,
 }
 
 impl Task {
+    #[deprecated(note = "use `new_regular` or `new_summary` for task creation")]
     pub fn new(
         name: impl Into<String>,
         date_start: DateTime<Utc>,
         date_end: DateTime<Utc>,
+        parent_id: Option<Uuid>,
+        is_summary: bool,
+    ) -> Result<Self, ProjectCreationErrors> {
+        if date_start >= date_end && !is_summary {
+            return Err(ProjectCreationErrors::InvalidTaskDuration {
+                date_start,
+                date_end,
+            });
+        }
+
+        Ok(Self {
+            id: Uuid::new_v4(),
+            name: name.into(),
+            date_start,
+            date_end,
+            status: TaskStatus::New,
+            duration: if is_summary {
+                TimeDelta::zero()
+            } else {
+                date_end - date_start
+            },
+            resource_allocations: vec![],
+            dependencies: vec![],
+            parent_id,
+            is_summary,
+        })
+    }
+
+    pub fn new_regular(
+        name: impl Into<String>,
+        date_start: DateTime<Utc>,
+        date_end: DateTime<Utc>,
+        parent_id: Option<Uuid>,
     ) -> Result<Self, ProjectCreationErrors> {
         if date_start >= date_end {
             return Err(ProjectCreationErrors::InvalidTaskDuration {
@@ -60,9 +98,30 @@ impl Task {
             duration: date_end - date_start,
             resource_allocations: vec![],
             dependencies: vec![],
+            parent_id,
+            is_summary: false,
         })
     }
 
+    pub fn new_summary(
+        name: impl Into<String>,
+        date_start: DateTime<Utc>,
+        date_end: DateTime<Utc>,
+        parent_id: Option<Uuid>,
+    ) -> Result<Self, ProjectCreationErrors> {
+        Ok(Self {
+            id: Uuid::new_v4(),
+            name: name.into(),
+            date_start,
+            date_end,
+            status: TaskStatus::New,
+            duration: date_end - date_start,
+            resource_allocations: vec![],
+            dependencies: vec![],
+            parent_id,
+            is_summary: true,
+        })
+    }
     pub fn get_status(&self) -> &TaskStatus {
         &self.status
     }
@@ -120,7 +179,7 @@ mod tests {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 2, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
 
-        let task = Task::new("Test", date_start, date_end);
+        let task = Task::new_regular("Test", date_start, date_end, None);
         assert!(task.is_err());
     }
 
@@ -129,7 +188,7 @@ mod tests {
         let date_start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
         let date_end = Utc.with_ymd_and_hms(2025, 1, 1, 2, 0, 0).unwrap();
 
-        let task = Task::new("Test", date_start, date_end);
+        let task = Task::new_regular("Test", date_start, date_end, None);
         assert!(task.is_ok());
     }
 }

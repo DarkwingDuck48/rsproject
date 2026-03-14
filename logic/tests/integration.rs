@@ -21,7 +21,13 @@ fn test_full_scenario() -> anyhow::Result<()> {
         let task_start = Utc.with_ymd_and_hms(2026, 2, 1, 0, 0, 0).unwrap();
         let task_end = Utc.with_ymd_and_hms(2026, 2, 15, 0, 0, 0).unwrap();
 
-        let task = task_service.create_task(project_id, "Design".into(), task_start, task_end)?;
+        let task = task_service.create_regular_task(
+            project_id,
+            "Design".into(),
+            task_start,
+            task_end,
+            None,
+        )?;
         let task_id = *task.get_id();
         (task_id, task_start, task_end)
     };

@@ -37,6 +37,8 @@ pub struct ProjectApp {
     new_task_name: String,
     new_task_start: NaiveDate,
     new_task_end: NaiveDate,
+    new_task_is_summary: bool,
+    selected_task_parent_id: Option<Uuid>,
 
     // Create resource dialog
     pub show_new_resource_dialog: bool,
@@ -90,6 +92,8 @@ impl Default for ProjectApp {
             assign_use_full_window: false,
             assign_custom_start: now,
             assign_custom_end: now,
+            new_task_is_summary: false,
+            selected_task_parent_id: None,
         }
     }
 }
@@ -131,6 +135,8 @@ impl ProjectApp {
             unavailable_end: Utc::now().date_naive(),
             unavailable_type: ExceptionType::Vacation,
             critical_path: None,
+            new_task_is_summary: false,
+            selected_task_parent_id: None,
         }
     }
     fn show_new_project_dialog(&mut self, ctx: &egui::Context) {
@@ -181,18 +187,57 @@ impl ProjectApp {
             .open(&mut open)
             .show(ctx, |ui| {
                 ui.text_edit_singleline(&mut self.new_task_name);
-                ui.horizontal(|ui| {
-                    ui.label("Start:");
-                    egui_extras::DatePickerButton::new(&mut self.new_task_start)
-                        .id_salt("task_start_picker")
-                        .ui(ui);
+                ui.horizontal(|ui| ui.checkbox(&mut self.new_task_is_summary, "Is Summary Task?"));
+
+                ui.add_enabled_ui(!self.new_task_is_summary, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Start:");
+                        egui_extras::DatePickerButton::new(&mut self.new_task_start)
+                            .id_salt("task_start_picker")
+                            .ui(ui);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("End:");
+                        egui_extras::DatePickerButton::new(&mut self.new_task_end)
+                            .id_salt("task_end_picker")
+                            .ui(ui);
+                    })
                 });
-                ui.horizontal(|ui| {
-                    ui.label("End:");
-                    egui_extras::DatePickerButton::new(&mut self.new_task_end)
-                        .id_salt("task_end_picker")
-                        .ui(ui);
-                });
+
+                if let Some(project) = self.container.list_projects().first() {
+                    let tasks = project.get_project_tasks();
+                    ui.horizontal(|ui| {
+                        ui.label("Родительская задача:");
+                        egui::ComboBox::from_id_salt("parent_task_combo")
+                            .selected_text(
+                                self.selected_task_parent_id
+                                    .and_then(|id| tasks.iter().find(|t| t.get_id() == &id))
+                                    .map(|t| t.name.clone())
+                                    .unwrap_or_else(|| "Нет родителя".to_string()),
+                            )
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(
+                                    &mut self.selected_task_parent_id,
+                                    None,
+                                    "Нет родителя",
+                                );
+                                for task in tasks {
+                                    // Можно добавить отображение типа задачи (например, 📁 для суммарной)
+                                    let display_name = if task.is_summary {
+                                        format!("📁 {}", task.name)
+                                    } else {
+                                        task.name.clone()
+                                    };
+                                    ui.selectable_value(
+                                        &mut self.selected_task_parent_id,
+                                        Some(*task.get_id()),
+                                        display_name,
+                                    );
+                                }
+                            });
+                    });
+                }
+
                 if ui.button("Create").clicked() {
                     match self.create_task() {
                         Ok(()) => {
@@ -408,12 +453,28 @@ impl ProjectApp {
             let end = self.new_task_end.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
             let mut task_service = TaskService::new(&mut self.container);
-            task_service.create_task(project_id, self.new_task_name.clone(), start, end)?;
+            if !self.new_task_is_summary {
+                task_service.create_regular_task(
+                    project_id,
+                    self.new_task_name.clone(),
+                    start,
+                    end,
+                    self.selected_task_parent_id,
+                )?;
+            } else {
+                task_service.create_summary_task(
+                    project_id,
+                    self.new_task_name.clone(),
+                    self.selected_task_parent_id,
+                )?;
+            };
 
             // Очистить поля
             self.new_task_name.clear();
             self.new_task_start = Utc::now().date_naive();
             self.new_task_end = Utc::now().date_naive();
+            self.new_task_is_summary = false;
+            self.selected_task_parent_id = None;
             Ok(())
         } else {
             eprintln!("No project found");
