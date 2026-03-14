@@ -1,6 +1,6 @@
 use crate::tabs::*;
 use chrono::{NaiveDate, Utc};
-use eframe::egui::{self, Widget};
+use eframe::egui::{self, RichText, Widget};
 use logic::{
     BasicGettersForStructures, ExceptionPeriod, ExceptionType, Project, ProjectContainer,
     RateMeasure, ResourceService, SingleProjectContainer, TaskService, TimeWindow,
@@ -737,7 +737,7 @@ impl eframe::App for ProjectApp {
                     self.show_new_project_dialog = true;
                     ui.close()
                 }
-                if ui.button(" ⬇︎ Открыть проект").clicked() {
+                if ui.button(" 🔃 Открыть проект").clicked() {
                     self.load_project();
                     ui.close();
                 }
@@ -752,7 +752,7 @@ impl eframe::App for ProjectApp {
                 }
             });
 
-            ui.heading("RS Project");
+            ui.heading(RichText::from("RS Project").size(20.0));
         });
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.selectable_value(&mut self.selected_tab, Tab::Project, "📁 Общая информация")

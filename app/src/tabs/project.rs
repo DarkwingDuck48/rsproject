@@ -25,7 +25,6 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     };
 
     if app.selected_project_id.is_some() {
-        // Отображение
         let project = app.container.get_project(&project_id).unwrap();
         ui.vertical(|ui| {
             ui.group(|ui| {

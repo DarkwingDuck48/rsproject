@@ -66,7 +66,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     let critical_path = app.critical_path.clone().unwrap_or_default();
     let tasks_data = collect_gantt_data(&mut app.container, project_id, &critical_path);
     if tasks_data.is_empty() {
-        ui.label("Нет задач. Создайте задачи на вкладке Tasks.");
+        ui.label("Нет задач. Создайте задачи на вкладке `Задачи`.");
         return;
     }
 
@@ -118,7 +118,6 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                         body.rows(25.0, visible_tasks.len(), |mut row| {
                             let task = visible_tasks[row.index()];
 
-                            // Колонка с именем задачи (кликабельная + контекстное меню)
                             row.col(|ui| {
                                 ui.horizontal(|ui| {
                                     ui.set_width(ui.available_width());
@@ -135,11 +134,13 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                                     };
                                     let response = ui.selectable_label(
                                         selected,
-                                        RichText::from(label).color(if task.is_summary {
-                                            egui::Color32::PURPLE
-                                        } else {
-                                            egui::Color32::DARK_GRAY
-                                        }),
+                                        RichText::from(label).underline().color(
+                                            if task.is_summary {
+                                                egui::Color32::PURPLE
+                                            } else {
+                                                egui::Color32::DARK_GRAY
+                                            },
+                                        ),
                                     );
                                     if response.clicked() {
                                         app.selected_task_id = Some(task.id);
