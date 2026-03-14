@@ -16,9 +16,9 @@ pub struct Project {
     pub name: String,
     pub description: String,
     pub calendar: ProjectCalendar,
-    date_start: DateTime<Utc>,
-    date_end: DateTime<Utc>,
-    duration: TimeDelta,
+    pub date_start: DateTime<Utc>,
+    pub date_end: DateTime<Utc>,
+    pub duration: TimeDelta,
     pub tasks: HashMap<Uuid, Task>,
 }
 

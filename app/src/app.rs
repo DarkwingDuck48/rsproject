@@ -23,6 +23,10 @@ pub struct ProjectApp {
     pub(crate) selected_task_id: Option<Uuid>,
     pub selected_resource_id: Option<Uuid>,
     pub critical_path: Option<Vec<Uuid>>,
+    pub edit_resource_id: Option<Uuid>,
+    pub edit_task_id: Option<Uuid>,
+    pub show_edit_task_dialog: bool,
+    pub show_edit_project_dialog: bool,
 
     // Create project dialog
     pub show_new_project_dialog: bool,
@@ -104,6 +108,10 @@ impl Default for ProjectApp {
             gantt_only_critical: false,
             details_task_id: None,
             show_task_details_dialog: false,
+            edit_resource_id: None,
+            edit_task_id: None,
+            show_edit_task_dialog: false,
+            show_edit_project_dialog: false,
         }
     }
 }
@@ -151,6 +159,10 @@ impl ProjectApp {
             gantt_only_critical: false,
             details_task_id: None,
             show_task_details_dialog: false,
+            edit_resource_id: None,
+            edit_task_id: None,
+            show_edit_task_dialog: false,
+            show_edit_project_dialog: false,
         }
     }
     fn show_new_project_dialog(&mut self, ctx: &egui::Context) {
@@ -172,12 +184,14 @@ impl ProjectApp {
                     ui.label("Дата начала проекта:");
                     egui_extras::DatePickerButton::new(&mut self.new_project_start)
                         .id_salt("start_project_date")
+                        .start_end_years(2020..=2035)
                         .ui(ui);
                 });
                 ui.horizontal(|ui| {
                     ui.label("Дата окончания проекта:");
                     egui_extras::DatePickerButton::new(&mut self.new_project_end)
                         .id_salt("end_project_date")
+                        .start_end_years(2020..=2035)
                         .ui(ui);
                 });
                 if ui.button("Создать проект").clicked() {
@@ -195,73 +209,146 @@ impl ProjectApp {
         }
     }
 
+    pub fn open_edit_project_dialog(&mut self) {
+        if let Some(project) = self.container.list_projects().first() {
+            self.new_project_name = project.name.clone();
+            self.new_project_desc = project.description.clone();
+            self.new_project_start = project.get_date_start().date_naive();
+            self.new_project_end = project.get_date_end().date_naive();
+            self.show_edit_project_dialog = true;
+        }
+    }
+
+    // Метод обновления проекта
+    fn update_project(&mut self) -> anyhow::Result<()> {
+        let project_id = *self.selected_project_id.as_ref().unwrap();
+        let new_start = self
+            .new_project_start
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_utc();
+        let new_end = self.new_project_end.and_hms_opt(0, 0, 0).unwrap().and_utc();
+
+        // Проверяем, что все задачи помещаются в новые даты
+        let task_service = TaskService::new(&mut self.container);
+        let tasks = task_service.get_all_tasks(project_id);
+        for task in tasks {
+            if *task.get_date_start() < new_start || *task.get_date_end() > new_end {
+                anyhow::bail!("Задача '{}' выходит за новые границы проекта", task.name);
+            }
+        }
+
+        // Обновляем проект
+        let project = self.container.get_project_mut(&project_id).unwrap();
+        project.name = self.new_project_name.clone();
+        project.description = self.new_project_desc.clone();
+        project.date_start = new_start;
+        project.date_end = new_end;
+        project.duration = new_end - new_start;
+
+        Ok(())
+    }
+
+    pub fn open_edit_resource_dialog(&mut self, resource_id: Uuid) {
+        if let Some(resource) = self.container.resource_pool().get_resource(&resource_id) {
+            self.new_resource_name = resource.name.clone();
+            self.new_resource_rate = resource.rate.to_string();
+            self.new_resource_measure = resource.rate_measure.clone();
+            self.edit_resource_id = Some(resource_id);
+            self.show_new_resource_dialog = true;
+        }
+    }
+
+    pub fn open_edit_task_dialog(&mut self, task_id: Uuid) {
+        if let Some(project_id) = self.selected_project_id {
+            let task_service = TaskService::new(&mut self.container);
+            if let Some(project) = task_service.get_project(&project_id)
+                && let Some(task) = project.tasks.get(&task_id)
+            {
+                self.new_task_name = task.name.clone();
+                self.new_task_start = task.get_date_start().date_naive();
+                self.new_task_end = task.get_date_end().date_naive();
+                self.new_task_is_summary = task.is_summary;
+                self.selected_task_parent_id = task.parent_id;
+                self.edit_task_id = Some(task_id);
+                self.show_new_task_dialog = true;
+            }
+        }
+    }
+
     fn show_new_task_dialog(&mut self, ctx: &egui::Context) {
         let mut open = true;
-        egui::Window::new("Create Task")
-            .open(&mut open)
-            .show(ctx, |ui| {
-                ui.text_edit_singleline(&mut self.new_task_name);
-                ui.horizontal(|ui| ui.checkbox(&mut self.new_task_is_summary, "Is Summary Task?"));
+        egui::Window::new(if self.edit_resource_id.is_some() {
+            "Редактировать задачу"
+        } else {
+            "Добавление задачи"
+        })
+        .open(&mut open)
+        .show(ctx, |ui| {
+            ui.text_edit_singleline(&mut self.new_task_name);
+            ui.horizontal(|ui| ui.checkbox(&mut self.new_task_is_summary, "Группирующая задача"));
 
-                ui.add_enabled_ui(!self.new_task_is_summary, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.label("Start:");
-                        egui_extras::DatePickerButton::new(&mut self.new_task_start)
-                            .id_salt("task_start_picker")
-                            .ui(ui);
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("End:");
-                        egui_extras::DatePickerButton::new(&mut self.new_task_end)
-                            .id_salt("task_end_picker")
-                            .ui(ui);
-                    })
+            ui.add_enabled_ui(!self.new_task_is_summary, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Start:");
+                    egui_extras::DatePickerButton::new(&mut self.new_task_start)
+                        .id_salt("task_start_picker")
+                        .start_end_years(2020..=2035)
+                        .ui(ui);
                 });
+                ui.horizontal(|ui| {
+                    ui.label("End:");
+                    egui_extras::DatePickerButton::new(&mut self.new_task_end)
+                        .id_salt("task_end_picker")
+                        .start_end_years(2020..=2035)
+                        .ui(ui);
+                })
+            });
 
-                if let Some(project) = self.container.list_projects().first() {
-                    let tasks = project.get_project_tasks();
-                    ui.horizontal(|ui| {
-                        ui.label("Родительская задача:");
-                        egui::ComboBox::from_id_salt("parent_task_combo")
-                            .selected_text(
-                                self.selected_task_parent_id
-                                    .and_then(|id| tasks.iter().find(|t| t.get_id() == &id))
-                                    .map(|t| t.name.clone())
-                                    .unwrap_or_else(|| "Нет родителя".to_string()),
-                            )
-                            .show_ui(ui, |ui| {
+            if let Some(project) = self.container.list_projects().first() {
+                let tasks = project.get_project_tasks();
+                ui.horizontal(|ui| {
+                    ui.label("Родительская задача:");
+                    egui::ComboBox::from_id_salt("parent_task_combo")
+                        .selected_text(
+                            self.selected_task_parent_id
+                                .and_then(|id| tasks.iter().find(|t| t.get_id() == &id))
+                                .map(|t| t.name.clone())
+                                .unwrap_or_else(|| "Нет родителя".to_string()),
+                        )
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut self.selected_task_parent_id,
+                                None,
+                                "Нет родителя",
+                            );
+                            for task in tasks {
+                                // Можно добавить отображение типа задачи (например, 📁 для суммарной)
+                                let display_name = if task.is_summary {
+                                    format!("📁 {}", task.name)
+                                } else {
+                                    task.name.clone()
+                                };
                                 ui.selectable_value(
                                     &mut self.selected_task_parent_id,
-                                    None,
-                                    "Нет родителя",
+                                    Some(*task.get_id()),
+                                    display_name,
                                 );
-                                for task in tasks {
-                                    // Можно добавить отображение типа задачи (например, 📁 для суммарной)
-                                    let display_name = if task.is_summary {
-                                        format!("📁 {}", task.name)
-                                    } else {
-                                        task.name.clone()
-                                    };
-                                    ui.selectable_value(
-                                        &mut self.selected_task_parent_id,
-                                        Some(*task.get_id()),
-                                        display_name,
-                                    );
-                                }
-                            });
-                    });
-                }
+                            }
+                        });
+                });
+            }
 
-                if ui.button("Create").clicked() {
-                    match self.create_task() {
-                        Ok(()) => {
-                            self.show_new_task_dialog = false;
-                            self.error_message = None;
-                        }
-                        Err(e) => self.error_message = Some(e.to_string()),
+            if ui.button("Сохранить").clicked() {
+                match self.create_task() {
+                    Ok(()) => {
+                        self.show_new_task_dialog = false;
+                        self.error_message = None;
                     }
+                    Err(e) => self.error_message = Some(e.to_string()),
                 }
-            });
+            }
+        });
         if !open {
             self.show_new_task_dialog = false;
         }
@@ -269,48 +356,53 @@ impl ProjectApp {
 
     fn show_new_resource_dialog(&mut self, ctx: &egui::Context) {
         let mut open = true;
-        egui::Window::new("Добавление ресурса")
-            .open(&mut open)
-            .show(ctx, |ui| {
-                ui.text_edit_singleline(&mut self.new_resource_name);
-                ui.horizontal(|ui| {
-                    ui.label("Ставка");
-                    ui.text_edit_singleline(&mut self.new_resource_rate);
-                });
-                ui.horizontal(|ui| {
-                    ui.label("Тип ставки");
-                    egui::ComboBox::from_id_salt("rate_measure")
-                        .selected_text(format!("{:?}", self.new_resource_measure))
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(
-                                &mut self.new_resource_measure,
-                                RateMeasure::Hourly,
-                                "Почасовая",
-                            );
-                            ui.selectable_value(
-                                &mut self.new_resource_measure,
-                                RateMeasure::Daily,
-                                "Ежедевная",
-                            );
-                            ui.selectable_value(
-                                &mut self.new_resource_measure,
-                                RateMeasure::Monthly,
-                                "Помесячная",
-                            );
-                        });
-                });
-                if ui.button("Добавить").clicked() {
-                    match self.create_resource() {
-                        Ok(()) => {
-                            self.show_new_resource_dialog = false;
-                            self.error_message = None
-                        }
-                        Err(e) => self.error_message = Some(e.to_string()),
-                    }
-                }
+        egui::Window::new(if self.edit_resource_id.is_some() {
+            "Редактировать ресурс"
+        } else {
+            "Добавление ресурса"
+        })
+        .open(&mut open)
+        .show(ctx, |ui| {
+            ui.text_edit_singleline(&mut self.new_resource_name);
+            ui.horizontal(|ui| {
+                ui.label("Ставка");
+                ui.text_edit_singleline(&mut self.new_resource_rate);
             });
+            ui.horizontal(|ui| {
+                ui.label("Тип ставки");
+                egui::ComboBox::from_id_salt("rate_measure")
+                    .selected_text(format!("{:?}", self.new_resource_measure))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.new_resource_measure,
+                            RateMeasure::Hourly,
+                            "Почасовая",
+                        );
+                        ui.selectable_value(
+                            &mut self.new_resource_measure,
+                            RateMeasure::Daily,
+                            "Ежедевная",
+                        );
+                        ui.selectable_value(
+                            &mut self.new_resource_measure,
+                            RateMeasure::Monthly,
+                            "Помесячная",
+                        );
+                    });
+            });
+            if ui.button("Сохранить").clicked() {
+                match self.create_resource() {
+                    Ok(()) => {
+                        self.show_new_resource_dialog = false;
+                        self.error_message = None
+                    }
+                    Err(e) => self.error_message = Some(e.to_string()),
+                }
+            }
+        });
         if !open {
             self.show_new_resource_dialog = false;
+            self.edit_resource_id = None;
         }
     }
 
@@ -345,12 +437,14 @@ impl ProjectApp {
                     ui.label("Дата начала периода:");
                     egui_extras::DatePickerButton::new(&mut self.unavailable_start)
                         .id_salt("unavail_start_picker")
+                        .start_end_years(2020..=2035)
                         .ui(ui);
                 });
                 ui.horizontal(|ui| {
                     ui.label("Дата окончания периода:");
                     egui_extras::DatePickerButton::new(&mut self.unavailable_end)
                         .id_salt("unavail_end_picker")
+                        .start_end_years(2020..=2035)
                         .ui(ui);
                 });
                 if ui.button("Добавить").clicked() {
@@ -416,12 +510,14 @@ impl ProjectApp {
                         ui.label("Дата начала работ(измененая):");
                         egui_extras::DatePickerButton::new(&mut self.assign_custom_start)
                             .id_salt("assign_start_picker")
+                            .start_end_years(2020..=2035)
                             .ui(ui);
                     });
                     ui.horizontal(|ui| {
                         ui.label("Дата окончания работ(измененная):");
                         egui_extras::DatePickerButton::new(&mut self.assign_custom_end)
                             .id_salt("assign_end_picker")
+                            .start_end_years(2020..=2035)
                             .ui(ui);
                     });
                 }
@@ -445,6 +541,14 @@ impl ProjectApp {
         }
     }
     fn clear_new_project_fields(&mut self) {}
+    fn clear_task_fields(&mut self) {
+        self.new_task_name.clear();
+        self.new_task_start = Utc::now().date_naive();
+        self.new_task_end = Utc::now().date_naive();
+        self.new_task_is_summary = false;
+        self.selected_task_parent_id = None;
+        self.edit_task_id = None;
+    }
     fn create_project(&mut self) -> anyhow::Result<()> {
         let project = Project::new(
             self.new_project_name.clone(),
@@ -467,7 +571,17 @@ impl ProjectApp {
             let end = self.new_task_end.and_hms_opt(0, 0, 0).unwrap().and_utc();
 
             let mut task_service = TaskService::new(&mut self.container);
-            if !self.new_task_is_summary {
+            if let Some(task_id) = self.edit_task_id {
+                // Обновление
+                task_service.update_task(
+                    project_id,
+                    task_id,
+                    Some(self.new_task_name.clone()),
+                    Some(start),
+                    Some(end),
+                    self.selected_task_parent_id,
+                )?;
+            } else if !self.new_task_is_summary {
                 task_service.create_regular_task(
                     project_id,
                     self.new_task_name.clone(),
@@ -481,14 +595,9 @@ impl ProjectApp {
                     self.new_task_name.clone(),
                     self.selected_task_parent_id,
                 )?;
-            };
-
+            }
             // Очистить поля
-            self.new_task_name.clear();
-            self.new_task_start = Utc::now().date_naive();
-            self.new_task_end = Utc::now().date_naive();
-            self.new_task_is_summary = false;
-            self.selected_task_parent_id = None;
+            self.clear_task_fields();
             Ok(())
         } else {
             eprintln!("No project found");
@@ -498,14 +607,26 @@ impl ProjectApp {
     fn create_resource(&mut self) -> anyhow::Result<()> {
         let rate: f64 = self.new_resource_rate.parse()?;
         let mut resource_service = ResourceService::new(&mut self.container);
-        let resource = resource_service.create_resource(
-            self.new_resource_name.clone(),
-            rate,
-            self.new_resource_measure.clone(),
-        )?;
-        resource_service.add_resource(resource)?;
+        if let Some(id) = self.edit_resource_id {
+            // Обновление
+            resource_service.update_resource(
+                id,
+                Some(self.new_resource_name.clone()),
+                Some(rate),
+                Some(self.new_resource_measure.clone()),
+            )?;
+        } else {
+            // Создание
+            let resource = resource_service.create_resource(
+                self.new_resource_name.clone(),
+                rate,
+                self.new_resource_measure.clone(),
+            )?;
+            resource_service.add_resource(resource)?;
+        }
         self.new_resource_name.clear();
         self.new_resource_rate = String::from("1000");
+        self.edit_resource_id = None;
         Ok(())
     }
 
@@ -616,20 +737,15 @@ impl eframe::App for ProjectApp {
                     self.show_new_project_dialog = true;
                     ui.close()
                 }
-                // TODO: Пока что у нас нет обработки нескольких контейнеров в одном окне - поэтому этот функционал не используем
-
-                // if ui.button("Новый контейнер").clicked() {
-                //     self.container = SingleProjectContainer::new();
-                //     ui.close();
-                // }
+                if ui.button(" ⬇︎ Открыть проект").clicked() {
+                    self.load_project();
+                    ui.close();
+                }
                 if ui.button(" 💾 Сохранить проект").clicked() {
                     self.save_project();
                     ui.close();
                 }
-                if ui.button(" ⬇︎ Загрузить проект").clicked() {
-                    self.load_project();
-                    ui.close();
-                }
+
                 ui.separator();
                 if ui.button("Выход").clicked() {
                     std::process::exit(0)
@@ -639,18 +755,16 @@ impl eframe::App for ProjectApp {
             ui.heading("RS Project");
         });
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Секции");
-            ui.separator();
-            ui.selectable_value(&mut self.selected_tab, Tab::Project, "📁 Project")
+            ui.selectable_value(&mut self.selected_tab, Tab::Project, "📁 Общая информация")
                 .context_menu(|ui| {
                     if ui.button("Новый проект").clicked() {
                         self.show_new_project_dialog = true;
                         ui.close();
                     }
                 });
-            ui.selectable_value(&mut self.selected_tab, Tab::Tasks, "✅ Tasks");
-            ui.selectable_value(&mut self.selected_tab, Tab::Resources, "👤 Resources");
-            ui.selectable_value(&mut self.selected_tab, Tab::Gantt, "📊 Gantt")
+            ui.selectable_value(&mut self.selected_tab, Tab::Tasks, "✅ Задачи");
+            ui.selectable_value(&mut self.selected_tab, Tab::Resources, "👤 Ресурсы");
+            ui.selectable_value(&mut self.selected_tab, Tab::Gantt, "📊 Диаграмма Ганта")
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -696,6 +810,7 @@ impl eframe::App for ProjectApp {
         if self.show_assign_resource_dialog {
             self.show_assign_resource_dialog(ctx);
         }
+
         if self.show_task_details_dialog {
             let mut open = true;
             egui::Window::new("Детали задачи")
@@ -703,13 +818,20 @@ impl eframe::App for ProjectApp {
                 .show(ctx, |ui| {
                     if let Some(task_id) = self.details_task_id {
                         let project_id = *self.selected_project_id.as_ref().unwrap();
-                        // Получение данных (скопируйте код из правой панели, который был ранее)
+
                         let (task_name, task_cost, alloc_ids, task_start, task_end) = {
                             let task_service = logic::TaskService::new(&mut self.container);
                             if let Some(project) = task_service.get_project(&project_id) {
                                 if let Some(task) = project.tasks.get(&task_id) {
                                     let name = task.name.clone();
-                                    let alloc_ids = task.get_resource_allocations().clone();
+
+                                    let alloc_ids = if task.is_summary {
+                                        task_service
+                                            .get_task_allocations(&project_id, *task.get_id())
+                                    } else {
+                                        task.get_resource_allocations().clone()
+                                    };
+
                                     let cost = task_service
                                         .calculate_task_cost(&project_id, &task_id)
                                         .unwrap_or(0.0);
@@ -777,6 +899,45 @@ impl eframe::App for ProjectApp {
             if !open {
                 self.show_task_details_dialog = false;
                 self.details_task_id = None;
+            }
+        }
+        if self.show_edit_project_dialog {
+            let mut open = true;
+            egui::Window::new("Редактировать проект")
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Имя проекта");
+                        ui.text_edit_singleline(&mut self.new_project_name);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Описание проекта");
+                        ui.text_edit_singleline(&mut self.new_project_desc);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Дата начала:");
+                        egui_extras::DatePickerButton::new(&mut self.new_project_start)
+                            .id_salt("edit_project_start")
+                            .ui(ui);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Дата окончания:");
+                        egui_extras::DatePickerButton::new(&mut self.new_project_end)
+                            .id_salt("edit_project_end")
+                            .ui(ui);
+                    });
+                    if ui.button("Сохранить").clicked() {
+                        match self.update_project() {
+                            Ok(()) => {
+                                self.show_edit_project_dialog = false;
+                                self.error_message = None;
+                            }
+                            Err(e) => self.error_message = Some(e.to_string()),
+                        }
+                    }
+                });
+            if !open {
+                self.show_edit_project_dialog = false;
             }
         }
     }

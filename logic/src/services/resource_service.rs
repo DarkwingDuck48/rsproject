@@ -25,6 +25,37 @@ impl<'a, C: ProjectContainer> ResourceService<'a, C> {
         Resource::new(name.into(), rate, measure)
     }
 
+    pub fn update_resource(
+        &mut self,
+        resource_id: Uuid,
+        name: Option<String>,
+        rate: Option<f64>,
+        measure: Option<RateMeasure>,
+    ) -> Result<()> {
+        let resource = self
+            .container
+            .resource_pool_mut()
+            .get_mut_resource_by_uuid(resource_id)
+            .ok_or_else(|| anyhow::anyhow!("Resource not found in pool"))?;
+
+        if let Some(n) = name {
+            resource.name = n;
+        }
+        if let Some(r) = rate {
+            resource.rate = r;
+        }
+        if let Some(m) = measure {
+            resource.rate_measure = m;
+        }
+        Ok(())
+    }
+
+    pub fn delete_resource(&mut self, resource_id: Uuid) -> Result<()> {
+        self.container
+            .resource_pool_mut()
+            .remove_resource(&resource_id)
+    }
+
     pub fn add_resource(&mut self, resource: Resource) -> Result<()> {
         self.container.resource_pool_mut().add_resource(resource)
     }
@@ -99,6 +130,70 @@ mod tests {
         SingleProjectContainer, TimeWindow,
     };
     use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn test_create_resource() {
+        let mut container = SingleProjectContainer::new();
+        let mut resource_service = ResourceService::new(&mut container);
+        let resource = resource_service
+            .create_resource("Test Resource", 100.0, RateMeasure::Hourly)
+            .unwrap();
+
+        assert_eq!(resource.name, "Test Resource");
+        assert_eq!(resource.rate, 100.0);
+        assert_eq!(resource.rate_measure, RateMeasure::Hourly);
+    }
+    #[test]
+    fn test_update_resource() {
+        let mut container = SingleProjectContainer::new();
+        let mut resource_service = ResourceService::new(&mut container);
+        let resource = resource_service
+            .create_resource("Test Resource", 100.0, RateMeasure::Hourly)
+            .unwrap();
+
+        let resource_id = resource.id;
+        resource_service.add_resource(resource).unwrap();
+
+        resource_service
+            .update_resource(
+                resource_id,
+                Some("Updated Resource".to_string()),
+                Some(150.0),
+                None,
+            )
+            .unwrap();
+
+        let updated_resource = resource_service
+            .container
+            .resource_pool()
+            .get_resource(&resource_id)
+            .unwrap();
+
+        assert_eq!(updated_resource.name, "Updated Resource");
+        assert_eq!(updated_resource.rate, 150.0);
+        assert_eq!(updated_resource.rate_measure, RateMeasure::Hourly);
+    }
+
+    #[test]
+    fn test_delete_resource() {
+        let mut container = SingleProjectContainer::new();
+        let mut resource_service = ResourceService::new(&mut container);
+        let resource = resource_service
+            .create_resource("Test Resource", 100.0, RateMeasure::Hourly)
+            .unwrap();
+
+        let resource_id = resource.id;
+        resource_service.add_resource(resource).unwrap();
+
+        assert!(resource_service.delete_resource(resource_id).is_ok());
+        assert!(
+            resource_service
+                .container
+                .resource_pool()
+                .get_resource(&resource_id)
+                .is_none()
+        );
+    }
 
     #[test]
     fn test_resource_pool() {

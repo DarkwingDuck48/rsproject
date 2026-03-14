@@ -171,6 +171,93 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             })
             .unwrap_or_default()
     }
+
+    pub fn get_task_allocations(&self, project_id: &Uuid, parent_id: Uuid) -> Vec<Uuid> {
+        self.container
+            .get_project(project_id)
+            .map(|p| {
+                p.tasks
+                    .values()
+                    .filter(|t| t.parent_id == Some(parent_id))
+                    .flat_map(|t| t.get_resource_allocations().iter().cloned())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    // Обновить задачу
+    pub fn update_task(
+        &mut self,
+        project_id: Uuid,
+        task_id: Uuid,
+        name: Option<String>,
+        start: Option<DateTime<Utc>>,
+        end: Option<DateTime<Utc>>,
+        parent_id: Option<Uuid>,
+    ) -> Result<()> {
+        let project = self
+            .container
+            .get_project_mut(&project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        let project_start_date = *project.get_date_start();
+        let project_end_date = *project.get_date_end();
+
+        let task = project
+            .tasks
+            .get_mut(&task_id)
+            .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
+
+        if let Some(n) = name {
+            task.name = n;
+        }
+
+        if task.is_summary && (start.is_some() || end.is_some()) {
+            anyhow::bail!("Cannot set start/end dates for summary task");
+        }
+
+        if let Some(s) = start {
+            if s < project_start_date {
+                anyhow::bail!("Task start date cannot be before project start date");
+            }
+            task.date_start = s;
+        }
+        if let Some(e) = end {
+            if e > project_end_date {
+                anyhow::bail!("Task end date cannot be after project end date");
+            }
+            task.date_end = e;
+        }
+
+        self.update_summary_dates(&project_id, task_id)?;
+        if let Some(p_id) = parent_id {
+            self.update_summary_dates(&project_id, p_id)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn delete_task(&mut self, project_id: Uuid, task_id: Uuid) -> Result<()> {
+        let project = self
+            .container
+            .get_project_mut(&project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        if !project.tasks.contains_key(&task_id) {
+            anyhow::bail!("Task not found");
+        }
+
+        // Удаляем задачу
+        project.tasks.remove(&task_id);
+
+        // Если у задачи был родитель, обновляем его даты
+        if let Some(parent_id) = project.tasks.get(&task_id).and_then(|t| t.parent_id) {
+            self.update_summary_dates(&project_id, parent_id)?;
+        }
+
+        Ok(())
+    }
+
     // Присвоить задаче ресурс
     // Мы должны создать запрос на аллокацию ресурса и отправить его в ресурсы, чтобы мы смогли их назначить
     // Вообще предполагается, что ресурс назначается на весь промежуток задачи, однако мы можем явно указать период, на который ресурс будет зайствован
@@ -332,6 +419,14 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             Ok(task_cost)
         }
     }
+    pub fn calculate_project_cost(&self, project_id: Uuid) -> anyhow::Result<f64> {
+        let tasks = self.get_root_tasks(project_id);
+        let mut total = 0.0;
+        for task in tasks {
+            total += self.calculate_task_cost(&project_id, task.get_id())?;
+        }
+        Ok(total)
+    }
 }
 
 #[cfg(test)]
@@ -379,6 +474,50 @@ mod tests {
         let resource_id = resource.id;
         resource_service.add_resource(resource).unwrap();
         resource_id
+    }
+
+    #[test]
+    fn test_update_task() -> anyhow::Result<()> {
+        let (mut container, project_id, task_id, _, _) = setup_task();
+        let mut task_service = TaskService::new(&mut container);
+
+        // Обновляем имя и даты
+        let new_name = "Updated Task".to_string();
+        let new_start = Utc.with_ymd_and_hms(2025, 2, 2, 0, 0, 0).unwrap();
+        let new_end = Utc.with_ymd_and_hms(2025, 2, 16, 0, 0, 0).unwrap();
+
+        task_service.update_task(
+            project_id,
+            task_id,
+            Some(new_name.clone()),
+            Some(new_start),
+            Some(new_end),
+            None,
+        )?;
+
+        // Проверяем изменения
+        let project = container.get_project(&project_id).unwrap();
+        let task = project.tasks.get(&task_id).unwrap();
+        assert_eq!(task.name, new_name);
+        assert_eq!(*task.get_date_start(), new_start);
+        assert_eq!(*task.get_date_end(), new_end);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_delete_task() -> anyhow::Result<()> {
+        let (mut container, project_id, task_id, _, _) = setup_task();
+        let mut task_service = TaskService::new(&mut container);
+
+        // Удаляем задачу
+        task_service.delete_task(project_id, task_id)?;
+
+        // Проверяем удаление
+        let project = container.get_project(&project_id).unwrap();
+        assert!(!project.tasks.contains_key(&task_id));
+
+        Ok(())
     }
 
     // 1. Пользователь не передал окно → окно = всей задаче.

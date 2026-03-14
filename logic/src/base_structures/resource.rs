@@ -89,8 +89,8 @@ impl RateMeasure {
 pub struct Resource {
     pub id: Uuid,
     pub name: String,
-    rate: f64,
-    rate_measure: RateMeasure,
+    pub rate: f64,
+    pub rate_measure: RateMeasure,
     unavailable_periods: Vec<ExceptionPeriod>,
 }
 

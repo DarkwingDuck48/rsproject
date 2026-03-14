@@ -1,6 +1,6 @@
 use crate::ProjectApp;
 use chrono::{DateTime, Utc};
-use eframe::egui::{self, Ui};
+use eframe::egui::{self, RichText, Ui};
 use egui_extras::{Column, TableBuilder};
 use logic::{BasicGettersForStructures, ProjectContainer, TaskService};
 use std::collections::HashMap;
@@ -159,7 +159,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                     ui.horizontal(|ui| {
                         ui.add_space(task.depth as f32 * 20.0);
                         if task.is_summary {
-                            ui.colored_label(egui::Color32::GOLD, &task.name);
+                            ui.colored_label(egui::Color32::PURPLE, &task.name);
                         } else {
                             ui.label(&task.name);
                         }
@@ -179,7 +179,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                 });
                 row.col(|ui| {
                     if !task.is_summary {
-                        if ui.button("Назначить").clicked() {
+                        if ui.button(RichText::new("➕")).clicked() {
                             app.selected_task_id = Some(task.id);
                             app.assign_custom_start = task.start_date.date_naive();
                             app.assign_custom_end = task.end_date.date_naive();
@@ -187,6 +187,16 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                         }
                     } else {
                         ui.label(""); // выравнивание
+                    }
+                    if ui.button("✏").clicked() {
+                        app.open_edit_task_dialog(task.id);
+                    }
+                    if ui.button("🗑").clicked() {
+                        // удаление
+                        let mut task_service = TaskService::new(&mut app.container);
+                        if let Err(e) = task_service.delete_task(project_id, task.id) {
+                            app.error_message = Some(e.to_string());
+                        }
                     }
                 });
             });

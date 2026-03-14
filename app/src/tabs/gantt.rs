@@ -1,5 +1,5 @@
 use crate::ProjectApp;
-use eframe::egui::{self, SliderClamping, Ui};
+use eframe::egui::{self, RichText, SliderClamping, Ui};
 use egui::Color32;
 use egui_extras::{Column, TableBuilder};
 use logic::{BasicGettersForStructures, ProjectContainer, Scheduler};
@@ -87,7 +87,6 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
 
     let day_width = app.gantt_day_width.max(8.0);
     let left_col_width = 250.0;
-    let calendar = app.container.calendar(&project_id).unwrap();
 
     ui.vertical(|ui| {
         ui.set_min_height(720.0);
@@ -127,13 +126,21 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                                     if task.is_critical {
                                         ui.colored_label(Color32::RED, "🔴");
                                     }
+
                                     let selected = app.selected_task_id == Some(task.id);
                                     let label = if task.is_summary {
                                         format!("📁 {}", task.name)
                                     } else {
                                         task.name.clone()
                                     };
-                                    let response = ui.selectable_label(selected, label);
+                                    let response = ui.selectable_label(
+                                        selected,
+                                        RichText::from(label).color(if task.is_summary {
+                                            egui::Color32::PURPLE
+                                        } else {
+                                            egui::Color32::DARK_GRAY
+                                        }),
+                                    );
                                     if response.clicked() {
                                         app.selected_task_id = Some(task.id);
                                     }
@@ -141,6 +148,20 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                                         if ui.button("Детали").clicked() {
                                             app.details_task_id = Some(task.id);
                                             app.show_task_details_dialog = true;
+                                            ui.close();
+                                        }
+                                        if ui.button("Редактировать").clicked() {
+                                            app.open_edit_task_dialog(task.id);
+                                            ui.close();
+                                        }
+                                        if ui.button("Удалить").clicked() {
+                                            let mut task_service =
+                                                logic::TaskService::new(&mut app.container);
+                                            if let Err(e) =
+                                                task_service.delete_task(project_id, task.id)
+                                            {
+                                                app.error_message = Some(e.to_string());
+                                            }
                                             ui.close();
                                         }
                                     });
@@ -153,6 +174,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                                     let date = min_date + chrono::Duration::days(day_offset as i64);
                                     let is_active =
                                         date >= task.start_date && date <= task.end_date;
+                                    let calendar = app.container.calendar(&project_id).unwrap();
                                     let is_weekend = !calendar.is_working_day(date.date_naive());
                                     let is_critical = task.is_critical;
 
