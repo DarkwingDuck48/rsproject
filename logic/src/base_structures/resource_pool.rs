@@ -95,6 +95,14 @@ impl ResourceAllocation {
     pub fn get_engagement_rate(&self) -> &f64 {
         &self.engagement_rate
     }
+
+    pub fn get_resource_id(&self) -> &Uuid {
+        &self.resource_id
+    }
+
+    pub fn get_time_window(&self) -> &TimeWindow {
+        &self.time_window
+    }
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]

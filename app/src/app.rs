@@ -57,6 +57,10 @@ pub struct ProjectApp {
     unavailable_start: NaiveDate,
     unavailable_end: NaiveDate,
     unavailable_type: ExceptionType,
+
+    // Gantt chart state
+    pub gantt_day_width: f32,
+    pub gantt_only_critical: bool,
 }
 
 impl Default for ProjectApp {
@@ -94,6 +98,8 @@ impl Default for ProjectApp {
             assign_custom_end: now,
             new_task_is_summary: false,
             selected_task_parent_id: None,
+            gantt_day_width: 36.0,
+            gantt_only_critical: false,
         }
     }
 }
@@ -137,6 +143,8 @@ impl ProjectApp {
             critical_path: None,
             new_task_is_summary: false,
             selected_task_parent_id: None,
+            gantt_day_width: 36.0,
+            gantt_only_critical: false,
         }
     }
     fn show_new_project_dialog(&mut self, ctx: &egui::Context) {

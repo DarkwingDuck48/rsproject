@@ -146,9 +146,16 @@ fn build_demo_container() -> anyhow::Result<SingleProjectContainer> {
 fn main() -> eframe::Result<()> {
     let container = build_demo_container().expect("Failed to build demo container");
     let app = ProjectApp::with_container(container);
-    let options = eframe::NativeOptions::default();
+    // Большее и удобное стартовое окно приложения
+    let options = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_inner_size([1280.0, 720.0])
+            .with_min_inner_size([1024.0, 600.0]),
+        ..Default::default()
+    };
+
     eframe::run_native(
-        "Project Manager (Demo)",
+        "Project Manager",
         options,
         Box::new(|_cc| Ok(Box::new(app))),
     )

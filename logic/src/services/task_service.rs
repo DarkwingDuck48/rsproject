@@ -11,7 +11,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use uuid::Uuid;
 
 pub struct TaskService<'a, C: ProjectContainer> {
-    container: &'a mut C,
+    pub container: &'a mut C,
 }
 
 impl<'a, C: ProjectContainer> TaskService<'a, C> {
