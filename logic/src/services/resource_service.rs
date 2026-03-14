@@ -1,5 +1,6 @@
-use crate::base_structures::{
-    ExceptionPeriod, ProjectCalendar, ProjectContainer, RateMeasure, Resource,
+use crate::{
+    BasicGettersForStructures, TimeWindow,
+    base_structures::{ExceptionPeriod, ProjectCalendar, ProjectContainer, RateMeasure, Resource},
 };
 use anyhow::Result;
 use uuid::Uuid;
@@ -83,6 +84,57 @@ impl<'a, C: ProjectContainer> ResourceService<'a, C> {
     }
 
     /// Суммарная занятость ресурса
+    /// Нам нужно будет посчитать суммарную утилизацию ресурса в проекте.
+    /// Стандартная формула для такого расчета - (количество отработанных часов в проекте / общее количество часов проекта) * 100 %
+    pub fn calculate_resource_utilization(
+        &self,
+        resource_id: Uuid,
+        project_id: Uuid,
+    ) -> Result<f64> {
+        let project = self
+            .container
+            .get_project(&project_id)
+            .ok_or_else(|| anyhow::anyhow!("Нет проекта для расчета"))?;
+        let calendar = self
+            .container
+            .calendar(&project_id)
+            .ok_or_else(|| anyhow::anyhow!("Нет календаря для проекта"))?;
+        let resource = self
+            .container
+            .resource_pool()
+            .get_resource(&resource_id)
+            .ok_or_else(|| anyhow::anyhow!("Нет выбранного ресурса!"))?;
+
+        let project_window = TimeWindow::new(*project.get_date_start(), *project.get_date_end())?;
+        let mut availible_hours = project_window.duration_hours(calendar);
+
+        for exeprion_period in resource.get_unavailable_periods() {
+            let overlap_period_start = exeprion_period
+                .period
+                .date_start
+                .max(project_window.date_start);
+            let overlap_period_end = exeprion_period.period.date_end.min(project_window.date_end);
+            if overlap_period_start < overlap_period_end {
+                let overlap_window = TimeWindow::new(overlap_period_start, overlap_period_end)?;
+                let exception_hours = overlap_window.duration_hours(calendar);
+                availible_hours -= exception_hours
+            }
+        }
+
+        let mut used_hours = 0.0;
+
+        let resource_allocations = self
+            .container
+            .resource_pool()
+            .get_resource_existing_allocations(&resource_id);
+        for allocation in resource_allocations {
+            let alloc_hours = allocation.get_time_window().duration_hours(calendar) as f64
+                * allocation.get_engagement_rate();
+            used_hours += alloc_hours
+        }
+        Ok(used_hours / availible_hours as f64)
+    }
+
     pub fn get_resource_utilization(&self, resource_id: Uuid) -> f64 {
         self.container
             .resource_pool()

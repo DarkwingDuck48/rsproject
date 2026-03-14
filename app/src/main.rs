@@ -2,6 +2,7 @@ mod app;
 mod tabs;
 
 pub use app::ProjectApp;
+use eframe::egui;
 pub use tabs::{gantt, project, resources, task};
 
 fn main() -> eframe::Result<()> {
@@ -16,6 +17,26 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Project Manager",
         options,
-        Box::new(|_cc| Ok(Box::new(app::ProjectApp::default()))),
+        Box::new(|cc| {
+            let mut fonts = egui::FontDefinitions::default();
+
+            // Встраиваем шрифты в бинарник
+
+            fonts.font_data.insert(
+                "FiraCodeNerd".to_owned(),
+                egui::FontData::from_static(include_bytes!(
+                    "../assets/fonts/FiraCodeNerdFontPropo-Regular.ttf"
+                ))
+                .into(),
+            );
+
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .insert(0, "FiraCodeNerd".to_owned());
+            cc.egui_ctx.set_fonts(fonts);
+            Ok(Box::new(ProjectApp::default()))
+        }),
     )
 }

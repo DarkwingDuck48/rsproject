@@ -33,7 +33,13 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
         let resources = resource_service.list_resources();
         let mut data = Vec::with_capacity(resources.len());
         for resource in resources {
-            let utilization = resource_service.get_resource_utilization(resource.id);
+            let utilization = resource_service
+                .calculate_resource_utilization(
+                    resource.id,
+                    app.selected_project_id.expect("Не выбран проект"),
+                )
+                .unwrap_or(0.0);
+
             let unavail_count = resource.get_unavailable_periods().len();
             data.push(ResourceViewData {
                 id: resource.id,
@@ -107,14 +113,14 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                 });
                 row.col(|ui| {
                     ui.horizontal(|ui| {
-                        if ui.button("➕ Недоступность").clicked() {
+                        if ui.button("").clicked() {
                             app.selected_resource_id = Some(data.id);
                             app.show_unavailable_period_dialog = true;
                         }
-                        if ui.button("✏").clicked() {
+                        if ui.button("").clicked() {
                             app.open_edit_resource_dialog(data.id);
                         }
-                        if ui.button("🗑").clicked() {
+                        if ui.button("󰩺").clicked() {
                             // Создаём новый сервис для мутабельной операции
                             let mut resource_service = ResourceService::new(&mut app.container);
                             if let Err(e) = resource_service.delete_resource(data.id) {

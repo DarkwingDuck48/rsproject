@@ -8,6 +8,11 @@ use logic::{
 use rfd::FileDialog;
 use uuid::Uuid;
 
+pub enum AppTheme {
+    Light,
+    Dark,
+}
+
 #[derive(PartialEq)]
 enum Tab {
     Project,
@@ -27,7 +32,9 @@ pub struct ProjectApp {
     pub edit_task_id: Option<Uuid>,
     pub show_edit_task_dialog: bool,
     pub show_edit_project_dialog: bool,
+    pub current_theme: AppTheme,
 
+    pub show_close_project_dialog: bool,
     // Create project dialog
     pub show_new_project_dialog: bool,
     new_project_name: String,
@@ -75,6 +82,7 @@ impl Default for ProjectApp {
         Self {
             container: SingleProjectContainer::new(),
             selected_tab: Tab::Project,
+            show_close_project_dialog: false,
             critical_path: None,
             show_new_project_dialog: false,
             show_new_task_dialog: false,
@@ -104,7 +112,7 @@ impl Default for ProjectApp {
             assign_custom_end: now,
             new_task_is_summary: false,
             selected_task_parent_id: None,
-            gantt_day_width: 36.0,
+            gantt_day_width: 40.0,
             gantt_only_critical: false,
             details_task_id: None,
             show_task_details_dialog: false,
@@ -112,6 +120,7 @@ impl Default for ProjectApp {
             edit_task_id: None,
             show_edit_task_dialog: false,
             show_edit_project_dialog: false,
+            current_theme: AppTheme::Light,
         }
     }
 }
@@ -125,6 +134,8 @@ impl ProjectApp {
             .unwrap_or_else(Uuid::new_v4);
         Self {
             container,
+            current_theme: AppTheme::Light,
+            show_close_project_dialog: false,
             selected_tab: Tab::Project,
             selected_project_id: Some(project_id),
             show_new_project_dialog: false,
@@ -155,7 +166,7 @@ impl ProjectApp {
             critical_path: None,
             new_task_is_summary: false,
             selected_task_parent_id: None,
-            gantt_day_width: 36.0,
+            gantt_day_width: 40.0,
             gantt_only_critical: false,
             details_task_id: None,
             show_task_details_dialog: false,
@@ -165,6 +176,21 @@ impl ProjectApp {
             show_edit_project_dialog: false,
         }
     }
+
+    fn close_project_no_save(&mut self) {
+        self.container = SingleProjectContainer::new();
+        self.selected_project_id = None;
+        self.critical_path = None;
+        self.selected_task_id = None;
+        self.selected_resource_id = None;
+        self.error_message = None;
+    }
+
+    fn close_project_with_save(&mut self) {
+        self.save_project();
+        self.close_project_no_save();
+    }
+
     fn show_new_project_dialog(&mut self, ctx: &egui::Context) {
         let mut open = true;
 
@@ -715,6 +741,8 @@ impl ProjectApp {
             match std::fs::read_to_string(&path) {
                 Ok(content) => match serde_json::from_str::<SingleProjectContainer>(&content) {
                     Ok(container) => {
+                        self.selected_project_id =
+                            Some(*container.list_projects().first().unwrap().get_id());
                         self.container = container;
                         self.error_message = None;
                     }
@@ -730,13 +758,22 @@ impl ProjectApp {
 
 impl eframe::App for ProjectApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        match self.current_theme {
+            AppTheme::Light => ctx.set_visuals(egui::Visuals::light()),
+            AppTheme::Dark => ctx.set_visuals(egui::Visuals::dark()),
+        }
         //Верхняя панель с заголовком
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            ui.menu_button("File", |ui| {
+            ui.menu_button("Файл", |ui| {
                 if ui.button("Новый проект").clicked() {
                     self.show_new_project_dialog = true;
                     ui.close()
                 }
+                if ui.button("Закрыть проект").clicked() {
+                    self.show_close_project_dialog = true;
+                    ui.close();
+                }
+
                 if ui.button(" 🔃 Открыть проект").clicked() {
                     self.load_project();
                     ui.close();
@@ -745,6 +782,17 @@ impl eframe::App for ProjectApp {
                     self.save_project();
                     ui.close();
                 }
+
+                ui.menu_button("Отображение", |ui| {
+                    if ui.button("☀️ Светлая тема").clicked() {
+                        self.current_theme = AppTheme::Light;
+                        ui.close();
+                    }
+                    if ui.button("🌙 Темная тема").clicked() {
+                        self.current_theme = AppTheme::Dark;
+                        ui.close();
+                    }
+                });
 
                 ui.separator();
                 if ui.button("Выход").clicked() {
@@ -809,6 +857,31 @@ impl eframe::App for ProjectApp {
         }
         if self.show_assign_resource_dialog {
             self.show_assign_resource_dialog(ctx);
+        }
+
+        if self.show_close_project_dialog {
+            let mut open = true;
+            egui::Window::new("Закрыть проект")
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.label("Сохранить изменения перед закрытием?");
+                    ui.horizontal(|ui| {
+                        if ui.button("Сохранить и закрыть").clicked() {
+                            self.close_project_with_save();
+                            self.show_close_project_dialog = false;
+                        }
+                        if ui.button("Закрыть без сохранения").clicked() {
+                            self.close_project_no_save();
+                            self.show_close_project_dialog = false;
+                        }
+                        if ui.button("Отмена").clicked() {
+                            self.show_close_project_dialog = false;
+                        }
+                    });
+                });
+            if !open {
+                self.show_close_project_dialog = false;
+            }
         }
 
         if self.show_task_details_dialog {

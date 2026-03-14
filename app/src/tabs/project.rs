@@ -5,7 +5,7 @@ use logic::{BasicGettersForStructures, ProjectContainer, TaskService};
 pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
     ui.horizontal(|ui| {
         ui.heading("📋 Информация о проекте");
-        if ui.button("✏️ Редактировать").clicked() {
+        if ui.button(" Редактировать").clicked() {
             app.open_edit_project_dialog();
         }
     });
