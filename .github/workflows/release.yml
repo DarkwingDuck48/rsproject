@@ -51,10 +51,17 @@ jobs:
         with:
           path: artifacts
 
+      - name: Prepare release files
+        run: |
+          mkdir release-files
+          cp artifacts/rsproject-linux-amd64/rsproject release-files/rsproject-linux-amd64
+          cp artifacts/rsproject-macos-amd64/rsproject release-files/rsproject-macos-amd64
+          cp artifacts/rsproject-windows-amd64.exe/rsproject.exe release-files/rsproject-windows-amd64.exe
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: release-files/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
