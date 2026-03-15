@@ -1,4 +1,5 @@
 /target
+.vscode
 *.code-workspace
 logic/src/.DS_Store
 .DS_Store
