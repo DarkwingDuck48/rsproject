@@ -1,6 +1,6 @@
 # RS Project – альтернатива MS Project на Rust
 
-![Testing](https://github.com/yourname/rsproject/actions/workflows/ci.yml/badge.svg)
+![Testing](https://github.com/DarkwingDuck48/rsproject/actions/workflows/ci.yml/badge.svg)
 
 
 Управление проектами с задачами, ресурсами, критическим путём и диаграммой Ганта.
@@ -9,7 +9,7 @@
 ## Сборка из исходников
 
 ```bash
-git clone https://github.com/yourname/rsproject.git
+git clone https://github.com/DarkwingDuck48/rsproject.git
 cd rsproject
 cargo build --release
 ./target/release/rsproject
