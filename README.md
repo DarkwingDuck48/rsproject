@@ -38,3 +38,22 @@ cargo build --release
 🤔 Добавить возможность открытия нескольких проектов и объединения их в один
 
 🤔 Загрузка и экспорт в формат MS Project для обратной совместимости
+
+
+## Обзор интерфейса
+
+### Экран информации по проекту
+
+![main_screen](/docs/screenshots/main_screen.png)
+
+### Экран задач
+
+![tasks_screen](/docs/screenshots/tasks_screen.png)
+
+### Экран ресурсов
+
+![tasks_screen](/docs/screenshots/resource_screen.png)
+
+### Диаграмма Ганта и критический путь проекта
+
+![tasks_screen](/docs/screenshots/gantt_with_critical.png)
