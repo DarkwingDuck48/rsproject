@@ -2,7 +2,7 @@ use crate::tabs::*;
 use chrono::{Duration, NaiveDate, Utc};
 use eframe::egui::{self, RichText, Widget};
 use logic::{
-    BasicGettersForStructures, Dependency, DependencyType, ExceptionPeriod, ExceptionType, Project,
+    BasicGettersForStructures, DependencyType, ExceptionPeriod, ExceptionType, Project,
     ProjectContainer, RateMeasure, ResourceService, SingleProjectContainer, TaskService,
     TimeWindow,
 };
@@ -670,7 +670,7 @@ impl ProjectApp {
                         project_id,
                         *task.get_id(),
                         self.new_task_dependency_task.unwrap(),
-                        self.new_task_dependency_type.clone().unwrap(),
+                        self.new_task_dependency_type.unwrap(),
                         Some(Duration::zero()),
                     )?;
                 }

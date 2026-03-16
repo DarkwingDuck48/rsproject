@@ -2,9 +2,8 @@ use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    DependencyType,
-    base_structures::{Dependency, ProjectCreationErrors, traits::BasicGettersForStructures},
+use crate::base_structures::{
+    Dependency, ProjectCreationErrors, traits::BasicGettersForStructures,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

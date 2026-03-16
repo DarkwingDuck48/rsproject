@@ -6,7 +6,6 @@ use logic::{
     ProjectContainer, RateMeasure, ResourceService, SingleProjectContainer, TaskService,
     TimeWindow,
 };
-use uuid::Uuid;
 
 fn build_demo_container() -> anyhow::Result<SingleProjectContainer> {
     let mut container = SingleProjectContainer::new();
