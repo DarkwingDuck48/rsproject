@@ -2,7 +2,7 @@ use crate::ProjectApp;
 use chrono::{DateTime, Utc};
 use eframe::egui::{self, Ui};
 use egui_extras::{Column, TableBuilder};
-use logic::{BasicGettersForStructures, ProjectContainer, TaskService};
+use logic::{BasicGettersForStructures, DependencyType, ProjectContainer, TaskService};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -15,6 +15,7 @@ struct TaskViewData {
     status: String,
     is_summary: bool,
     parent_id: Option<Uuid>,
+    dependencies: Vec<(String, DependencyType)>,
     cost: f64,
     depth: usize, // вычисляется заранее
 }
@@ -48,6 +49,14 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
             let cost = task_service
                 .calculate_task_cost(&project_id, task.get_id())
                 .unwrap_or(0.0);
+            let dependencies = task.get_dependencies().clone();
+            let mut calculated_deps = vec![];
+            for dependency in dependencies {
+                let task_dep = task_service.get_task_by_id(&project_id, &dependency.depends_on);
+                if let Some(t) = task_dep {
+                    calculated_deps.push((t.name.clone(), dependency.dependency_type))
+                };
+            }
             let data = TaskViewData {
                 id: *task.get_id(),
                 name: task.name.clone(),
@@ -56,6 +65,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                 status: format!("{:?}", task.get_status()),
                 is_summary: task.is_summary,
                 parent_id: task.parent_id,
+                dependencies: calculated_deps,
                 cost,
                 depth: 0, // временно
             };
@@ -128,6 +138,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
         .columns(Column::auto_with_initial_suggestion(200.0), 1) // Задача + отступы
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Начало
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Окончание
+        .columns(Column::auto_with_initial_suggestion(100.0), 1) // Зависимости
         .columns(Column::auto_with_initial_suggestion(80.0), 1) // Стоимость
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Статус
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Действия
@@ -140,6 +151,9 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
             });
             header.col(|ui| {
                 ui.strong("Окончание");
+            });
+            header.col(|ui| {
+                ui.strong("Зависимости");
             });
             header.col(|ui| {
                 ui.strong("Стоимость");
@@ -170,6 +184,15 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                 });
                 row.col(|ui| {
                     ui.label(task.end_date.format("%Y-%m-%d").to_string());
+                });
+                row.col(|ui| {
+                    let result_dep: String = task
+                        .dependencies
+                        .iter()
+                        .map(|(a, b)| format!("{}|{}", a, b))
+                        .collect::<Vec<String>>()
+                        .join(",");
+                    ui.label(result_dep);
                 });
                 row.col(|ui| {
                     ui.label(format!("{:.2}", task.cost));

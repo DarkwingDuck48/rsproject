@@ -1,9 +1,10 @@
 use crate::tabs::*;
-use chrono::{NaiveDate, Utc};
+use chrono::{Duration, NaiveDate, Utc};
 use eframe::egui::{self, RichText, Widget};
 use logic::{
-    BasicGettersForStructures, ExceptionPeriod, ExceptionType, Project, ProjectContainer,
-    RateMeasure, ResourceService, SingleProjectContainer, TaskService, TimeWindow,
+    BasicGettersForStructures, Dependency, DependencyType, ExceptionPeriod, ExceptionType, Project,
+    ProjectContainer, RateMeasure, ResourceService, SingleProjectContainer, TaskService,
+    TimeWindow,
 };
 use rfd::FileDialog;
 use uuid::Uuid;
@@ -49,6 +50,8 @@ pub struct ProjectApp {
     new_task_start: NaiveDate,
     new_task_end: NaiveDate,
     new_task_is_summary: bool,
+    new_task_dependency_task: Option<Uuid>,
+    new_task_dependency_type: Option<DependencyType>,
     selected_task_parent_id: Option<Uuid>,
 
     // Create resource dialog
@@ -82,6 +85,8 @@ impl Default for ProjectApp {
         Self {
             container: SingleProjectContainer::new(),
             selected_tab: Tab::Project,
+            new_task_dependency_task: None,
+            new_task_dependency_type: None,
             show_close_project_dialog: false,
             critical_path: None,
             show_new_project_dialog: false,
@@ -135,6 +140,8 @@ impl ProjectApp {
         Self {
             container,
             current_theme: AppTheme::Light,
+            new_task_dependency_task: None,
+            new_task_dependency_type: None,
             show_close_project_dialog: false,
             selected_tab: Tab::Project,
             selected_project_id: Some(project_id),
@@ -333,7 +340,7 @@ impl ProjectApp {
 
             if let Some(project) = self.container.list_projects().first() {
                 let tasks = project.get_project_tasks();
-                ui.horizontal(|ui| {
+                ui.vertical(|ui| {
                     ui.label("Родительская задача:");
                     egui::ComboBox::from_id_salt("parent_task_combo")
                         .selected_text(
@@ -348,7 +355,7 @@ impl ProjectApp {
                                 None,
                                 "Нет родителя",
                             );
-                            for task in tasks {
+                            for task in tasks.clone() {
                                 // Можно добавить отображение типа задачи (например, 📁 для суммарной)
                                 let display_name = if task.is_summary {
                                     format!("📁 {}", task.name)
@@ -361,6 +368,48 @@ impl ProjectApp {
                                     display_name,
                                 );
                             }
+                        });
+                    ui.label("Зависимая задача:");
+                    egui::ComboBox::from_id_salt("dependent_task_combo")
+                        .selected_text(
+                            self.new_task_dependency_task
+                                .and_then(|id| tasks.iter().find(|t| t.get_id() == &id))
+                                .map(|t| t.name.clone())
+                                .unwrap_or_else(|| "Нет зависимой задачи".to_string()),
+                        )
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut self.new_task_dependency_task,
+                                None,
+                                "Нет зависимой задачи",
+                            );
+                            for task in tasks {
+                                let display_name = if task.is_summary {
+                                    format!("📁 {}", task.name)
+                                } else {
+                                    task.name.clone()
+                                };
+                                ui.selectable_value(
+                                    &mut self.new_task_dependency_task,
+                                    Some(*task.get_id()),
+                                    display_name,
+                                );
+                            }
+                        });
+                    ui.label("Тип зависимости задачи:");
+                    egui::ComboBox::from_id_salt("dependent_type_task_combo")
+                        .selected_text(format!("{:?}", self.new_task_dependency_type))
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut self.new_task_dependency_type,
+                                Some(DependencyType::Blocking),
+                                "Блокирующая",
+                            );
+                            ui.selectable_value(
+                                &mut self.new_task_dependency_type,
+                                Some(DependencyType::NonBlocking),
+                                "Неблокирующая",
+                            );
                         });
                 });
             }
@@ -608,13 +657,23 @@ impl ProjectApp {
                     self.selected_task_parent_id,
                 )?;
             } else if !self.new_task_is_summary {
-                task_service.create_regular_task(
+                let task = task_service.create_regular_task(
                     project_id,
                     self.new_task_name.clone(),
                     start,
                     end,
                     self.selected_task_parent_id,
                 )?;
+                if self.new_task_dependency_task.is_some() {
+                    eprintln!("Добавляю новую зависимую задачу");
+                    task_service.add_dependency(
+                        project_id,
+                        *task.get_id(),
+                        self.new_task_dependency_task.unwrap(),
+                        self.new_task_dependency_type.clone().unwrap(),
+                        Some(Duration::zero()),
+                    )?;
+                }
             } else {
                 task_service.create_summary_task(
                     project_id,

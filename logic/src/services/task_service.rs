@@ -153,6 +153,13 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             .unwrap_or_default()
     }
 
+    pub fn get_task_by_id(&self, project_id: &Uuid, task_id: &Uuid) -> Option<&Task> {
+        self.get_all_tasks(*project_id)
+            .into_iter()
+            .find(|&task| task.get_id() == task_id)
+            .map(|v| v as _)
+    }
+
     pub fn get_root_tasks(&self, project_id: Uuid) -> Vec<&Task> {
         self.container
             .get_project(&project_id)
