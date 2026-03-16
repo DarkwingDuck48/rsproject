@@ -20,7 +20,7 @@ impl std::fmt::Display for DependencyType {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dependency {
     // ID связанной задачи
     pub dependency_type: DependencyType,

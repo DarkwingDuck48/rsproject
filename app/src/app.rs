@@ -303,6 +303,16 @@ impl ProjectApp {
                 self.new_task_end = task.get_date_end().date_naive();
                 self.new_task_is_summary = task.is_summary;
                 self.selected_task_parent_id = task.parent_id;
+                self.new_task_dependency_task = if task.get_dependencies().is_empty() {
+                    None
+                } else {
+                    Some(task.get_dependencies().first().unwrap().depends_on)
+                };
+                self.new_task_dependency_type = if task.get_dependencies().is_empty() {
+                    None
+                } else {
+                    Some(task.get_dependencies().first().unwrap().dependency_type)
+                };
                 self.edit_task_id = Some(task_id);
                 self.show_new_task_dialog = true;
             }
@@ -323,21 +333,22 @@ impl ProjectApp {
 
             ui.add_enabled_ui(!self.new_task_is_summary, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Start:");
+                    ui.label("Начало задачи:");
                     egui_extras::DatePickerButton::new(&mut self.new_task_start)
                         .id_salt("task_start_picker")
                         .start_end_years(2020..=2035)
                         .ui(ui);
                 });
                 ui.horizontal(|ui| {
-                    ui.label("End:");
+                    ui.label("Окончание задачи:");
                     egui_extras::DatePickerButton::new(&mut self.new_task_end)
                         .id_salt("task_end_picker")
                         .start_end_years(2020..=2035)
                         .ui(ui);
                 })
             });
-
+            ui.separator();
+            ui.label(RichText::from("Зависимости").strong());
             if let Some(project) = self.container.list_projects().first() {
                 let tasks = project.get_project_tasks();
                 ui.vertical(|ui| {
@@ -357,19 +368,19 @@ impl ProjectApp {
                             );
                             for task in tasks.clone() {
                                 // Можно добавить отображение типа задачи (например, 📁 для суммарной)
-                                let display_name = if task.is_summary {
-                                    format!("📁 {}", task.name)
-                                } else {
-                                    task.name.clone()
-                                };
-                                ui.selectable_value(
-                                    &mut self.selected_task_parent_id,
-                                    Some(*task.get_id()),
-                                    display_name,
-                                );
+                                if task.is_summary {
+                                    let display_name = format!("📁 {}", task.name);
+
+                                    ui.selectable_value(
+                                        &mut self.selected_task_parent_id,
+                                        Some(*task.get_id()),
+                                        display_name,
+                                    );
+                                }
                             }
                         });
-                    ui.label("Зависимая задача:");
+                    ui.separator();
+
                     egui::ComboBox::from_id_salt("dependent_task_combo")
                         .selected_text(
                             self.new_task_dependency_task
@@ -656,6 +667,16 @@ impl ProjectApp {
                     Some(end),
                     self.selected_task_parent_id,
                 )?;
+                if self.new_task_dependency_task.is_some() {
+                    eprintln!("Добавляю новую зависимую задачу");
+                    task_service.add_dependency(
+                        project_id,
+                        task_id,
+                        self.new_task_dependency_task.unwrap(),
+                        self.new_task_dependency_type.unwrap(),
+                        Some(Duration::zero()),
+                    )?;
+                }
             } else if !self.new_task_is_summary {
                 let task = task_service.create_regular_task(
                     project_id,

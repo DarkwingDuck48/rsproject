@@ -140,7 +140,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Окончание
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Зависимости
         .columns(Column::auto_with_initial_suggestion(80.0), 1) // Стоимость
-        .columns(Column::auto_with_initial_suggestion(100.0), 1) // Статус
+        // .columns(Column::auto_with_initial_suggestion(100.0), 1) // Статус
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Действия
         .header(20.0, |mut header| {
             header.col(|ui| {
@@ -158,9 +158,9 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
             header.col(|ui| {
                 ui.strong("Стоимость");
             });
-            header.col(|ui| {
-                ui.strong("Статус");
-            });
+            // header.col(|ui| {
+            //     ui.strong("Статус");
+            // });
             header.col(|ui| {
                 ui.strong("Действия");
             });
@@ -186,20 +186,25 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                     ui.label(task.end_date.format("%Y-%m-%d").to_string());
                 });
                 row.col(|ui| {
-                    let result_dep: String = task
-                        .dependencies
-                        .iter()
-                        .map(|(a, b)| format!("{}|{}", a, b))
-                        .collect::<Vec<String>>()
-                        .join(",");
-                    ui.label(result_dep);
+                    ui.horizontal_wrapped(|ui| {
+                        for (i, (dep_name, dep_type)) in task.dependencies.iter().enumerate() {
+                            if i > 0 {
+                                ui.label("; ");
+                            }
+                            let color = match dep_type {
+                                DependencyType::Blocking => egui::Color32::DARK_RED,
+                                DependencyType::NonBlocking => egui::Color32::DARK_GRAY,
+                            };
+                            ui.colored_label(color, dep_name);
+                        }
+                    });
                 });
                 row.col(|ui| {
                     ui.label(format!("{:.2}", task.cost));
                 });
-                row.col(|ui| {
-                    ui.label(&task.status);
-                });
+                // row.col(|ui| {
+                //     ui.label(&task.status);
+                // });
                 row.col(|ui| {
                     if !task.is_summary {
                         if ui.button("󰀔").clicked() {
