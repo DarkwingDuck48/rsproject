@@ -479,21 +479,21 @@ fn build_demo_container() -> anyhow::Result<SingleProjectContainer> {
 
     task_service.allocate_resource(project_id, t2_1_id, analyst.id, 0.8, None)?;
     task_service.allocate_resource(project_id, t2_2_id, analyst.id, 0.6, None)?;
-    task_service.allocate_resource(project_id, t2_3_id, dev_lead.id, 0.9, None)?;
+    task_service.allocate_resource(project_id, t2_3_id, dev_lead.id, 0.6, None)?;
     task_service.allocate_resource(project_id, t2_4_id, dev_lead.id, 0.3, None)?;
-    task_service.allocate_resource(project_id, t2_5_id, pm.id, 0.4, None)?;
+    task_service.allocate_resource(project_id, t2_5_id, pm.id, 0.1, None)?;
 
-    task_service.allocate_resource(project_id, t3_1_1_id, devops.id, 0.7, None)?;
+    task_service.allocate_resource(project_id, t3_1_1_id, devops.id, 0.5, None)?;
     task_service.allocate_resource(project_id, t3_1_2_id, devops.id, 0.5, None)?;
-    task_service.allocate_resource(project_id, t3_2_1_id, dev.id, 1.0, None)?;
-    task_service.allocate_resource(project_id, t3_2_2_id, dev.id, 1.0, None)?;
-    task_service.allocate_resource(project_id, t3_3_1_id, dev.id, 0.5, None)?;
-    task_service.allocate_resource(project_id, t3_3_2_id, dev.id, 0.6, None)?;
+    task_service.allocate_resource(project_id, t3_2_1_id, dev.id, 0.3, None)?;
+    task_service.allocate_resource(project_id, t3_2_2_id, dev.id, 0.3, None)?;
+    task_service.allocate_resource(project_id, t3_3_1_id, dev.id, 0.3, None)?;
+    task_service.allocate_resource(project_id, t3_3_2_id, dev.id, 0.1, None)?;
 
-    task_service.allocate_resource(project_id, t4_1_id, tester.id, 0.8, None)?;
-    task_service.allocate_resource(project_id, t4_2_id, tester.id, 0.6, None)?;
-    task_service.allocate_resource(project_id, t4_3_id, tester.id, 0.7, None)?;
-    task_service.allocate_resource(project_id, t4_4_id, tester.id, 0.9, None)?;
+    task_service.allocate_resource(project_id, t4_1_id, tester.id, 0.25, None)?;
+    task_service.allocate_resource(project_id, t4_2_id, tester.id, 0.25, None)?;
+    task_service.allocate_resource(project_id, t4_3_id, tester.id, 0.25, None)?;
+    task_service.allocate_resource(project_id, t4_4_id, tester.id, 0.25, None)?;
 
     task_service.allocate_resource(project_id, t5_1_id, analyst.id, 0.4, None)?;
     task_service.allocate_resource(project_id, t5_2_id, analyst.id, 0.5, None)?;
@@ -503,9 +503,6 @@ fn build_demo_container() -> anyhow::Result<SingleProjectContainer> {
     task_service.allocate_resource(project_id, t6_1_id, analyst.id, 0.2, None)?;
     task_service.allocate_resource(project_id, t6_2_id, dev.id, 0.4, None)?;
     task_service.allocate_resource(project_id, t6_3_id, devops.id, 0.3, None)?;
-
-    // Проверим, что получилось около 50 задач: примерно 30-40, но для демо достаточно.
-    // Всего задач: 3 (фаза1) + 5 (фаза2) + 7 (фаза3 с подфазами) + 4 (фаза4) + 4 (фаза5) + 3 (фаза6) = ~26, плюс суммарные итого 30. Для 50 надо больше, но для демо хватит.
 
     Ok(container)
 }
