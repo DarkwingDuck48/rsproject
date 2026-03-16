@@ -15,13 +15,13 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact_name: rsproject
-            asset_name: rsproject-linux-amd64
+            asset_name: rsproject-linux
           - os: windows-latest
             artifact_name: rsproject.exe
-            asset_name: rsproject-windows-amd64.exe
+            asset_name: rsproject-windows.exe
           - os: macos-latest
             artifact_name: rsproject
-            asset_name: rsproject-macos-amd64
+            asset_name: rsproject-macos
 
     steps:
       - name: Checkout code
@@ -54,9 +54,9 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir release-files
-          cp artifacts/rsproject-linux-amd64/rsproject release-files/rsproject-linux-amd64
-          cp artifacts/rsproject-macos-amd64/rsproject release-files/rsproject-macos-amd64
-          cp artifacts/rsproject-windows-amd64.exe/rsproject.exe release-files/rsproject-windows-amd64.exe
+          cp artifacts/rsproject-linux/rsproject release-files/rsproject-linux
+          cp artifacts/rsproject-macos/rsproject release-files/rsproject-macos
+          cp artifacts/rsproject-windows.exe/rsproject.exe release-files/rsproject-windows.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

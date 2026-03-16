@@ -1,7 +1,9 @@
 # RS Project – альтернатива MS Project на Rust
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Testing](https://github.com/DarkwingDuck48/rsproject/actions/workflows/ci.yml/badge.svg)
 ![Release](https://github.com/DarkwingDuck48/rsproject/actions/workflows/release.yml/badge.svg)
+
 
 Управление проектами с задачами, ресурсами, критическим путём и диаграммой Ганта.
 
@@ -9,6 +11,23 @@
 ## Скачать
 
 Последнюю версию можно скачать на [странице релизов](https://github.com/DarkwingDuck48/rsproject/releases/latest).
+
+## Для пользователей MacOS
+
+Так как ПО распространяется бесплатно, то после скачивания возможно появление предупреждения от Apple о том, что невозможно проверить приложение.
+Для того, чтобы запустить RS Project, нужно выполнить 2 команды в терминале
+
+**Разрешить выполнение файла**
+
+```bash
+chmod +x /путь/к/скаченному/rsproject
+```
+
+**Убрать предупреждение от Apple**
+```bash
+xattr -d com.apple.quarantine /путь/к/rsproject
+```
+
 
 ## Сборка из исходников
 
