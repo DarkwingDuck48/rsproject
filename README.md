@@ -1,6 +1,6 @@
 # RS Project – альтернатива MS Project на Rust
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Testing](https://github.com/DarkwingDuck48/rsproject/actions/workflows/ci.yml/badge.svg)
 ![Release](https://github.com/DarkwingDuck48/rsproject/actions/workflows/release.yml/badge.svg)
 

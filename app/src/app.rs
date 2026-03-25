@@ -407,9 +407,15 @@ impl ProjectApp {
                                 );
                             }
                         });
+                    // TODO: Мы должны отобразить зависимости в виде таблицы, так как у нас может быть не одна зависимость
                     ui.label("Тип зависимости задачи:");
+                    let selected_text = match self.new_task_dependency_type {
+                        Some(DependencyType::Blocking) => "Блокирующая",
+                        Some(DependencyType::NonBlocking) => "Неблокирующая",
+                        None => "Не выбрано", // или "Выберите тип"
+                    };
                     egui::ComboBox::from_id_salt("dependent_type_task_combo")
-                        .selected_text(format!("{:?}", self.new_task_dependency_type))
+                        .selected_text(selected_text)
                         .show_ui(ui, |ui| {
                             ui.selectable_value(
                                 &mut self.new_task_dependency_type,
@@ -667,6 +673,7 @@ impl ProjectApp {
                     Some(end),
                     self.selected_task_parent_id,
                 )?;
+                // TODO: Здесь должно быть место для удаления зависимости с задачи
                 if self.new_task_dependency_task.is_some() {
                     eprintln!("Добавляю новую зависимую задачу");
                     task_service.add_dependency(
