@@ -1,0 +1,114 @@
+name: 🐛 Bug Report
+description: Сообщить об ошибке или проблеме в RS Project
+title: "[BUG] "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # 🐛 Отчёт об ошибке
+
+        Спасибо, что нашли время сообщить об ошибке! Пожалуйста, заполните форму ниже — это поможет нам быстрее исправить проблему.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Предварительная проверка
+      description: Пожалуйста, убедитесь, что вы проверили следующие пункты перед созданием отчёта.
+      options:
+        - label: "Я проверил, что эта ошибка ещё не была зарегистрирована в [issues](https://github.com/DarkwingDuck48/rsproject/issues)"
+          required: true
+        - label: "Я использую [последнюю версию](https://github.com/DarkwingDuck48/rsproject/releases/latest) RS Project"
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание ошибки
+      description: Чётко и кратко опишите, что пошло не так.
+      placeholder: При попытке открыть диаграмму Ганта приложение завершается с ошибкой...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги для воспроизведения
+      description: Опишите последовательность действий, которая приводит к ошибке.
+      placeholder: |
+        1. Открыть RS Project
+        2. Создать новый проект '...'
+        3. Добавить задачу '...'
+        4. Назначить ресурс '...'
+        5. Перейти на вкладку 'Диаграмма Ганта'
+        6. Наблюдать ошибку
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      description: Опишите, что должно было произойти.
+      placeholder: Диаграмма Ганта должна отобразить задачу с выделенным критическим путём.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение
+      description: Опишите, что произошло на самом деле.
+      placeholder: Приложение аварийно завершается, либо диаграмма пустая.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Логи / Вывод консоли
+      description: |
+        Если применимо, приложите вывод из терминала, сообщения об ошибках или скриншоты.
+        Для скриншотов — просто перетащите изображение в это поле.
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия RS Project
+      description: Какая версия у вас установлена?
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Операционная система
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (укажите дистрибутив в доп. информации)
+        - Другое
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: Версия ОС / Дистрибутив
+      placeholder: "macOS Sonoma 14.3, Ubuntu 24.04, Windows 10 22H2"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Дополнительная информация
+      description: |
+        Любая дополнительная информация, которая может помочь:
+        - Используете ли вы собранную из исходников версию или готовый бинарник?
+        - Конфигурация оборудования, если ошибка связана с производительностью.
+        - Содержимое файла проекта (JSON), если ошибка при загрузке.

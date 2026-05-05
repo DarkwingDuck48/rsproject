@@ -1,0 +1,89 @@
+name: 💡 Feature Request
+description: Предложить новую возможность или улучшение для RS Project
+title: "[FEAT] "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # 💡 Запрос на новую возможность
+
+        Спасибо за идею! Пожалуйста, опишите её как можно подробнее.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Предварительная проверка
+      options:
+        - label: "Я проверил, что эта идея ещё не была предложена в [issues](https://github.com/DarkwingDuck48/rsproject/issues)"
+          required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Тип запроса
+      options:
+        - Новая функциональность
+        - Улучшение существующей функциональности
+        - Интеграция с внешним инструментом/форматом
+        - Производительность / Оптимизация
+        - UX / Интерфейс
+        - Документация
+        - Другое
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему это решает?
+      description: "Опишите проблему или потребность, которую вы испытываете. Например: «Мне не хватает возможности...», «Меня раздражает, что...»"
+      placeholder: "Когда я работаю с большим проектом, мне сложно ориентироваться, потому что..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      description: "Опишите, как вы видите решение. Не стесняйтесь прикладывать макеты, примеры из других программ или псевдокод."
+      placeholder: |
+        Было бы удобно, если бы можно было...
+
+        1. Нажать кнопку «...»
+        2. В появившемся окне «...»
+        3. ...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативные решения
+      description: "Рассматривали ли вы какие-то обходные пути или альтернативные подходы?"
+      placeholder: "Сейчас я делаю это вручную через... / В MS Project это работает так: ..."
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Дополнительный контекст
+      description: "Любые дополнительные детали, скриншоты, ссылки на похожие решения в других проектах. Если вы хотите приложить макет или скриншот — просто перетащите изображение в это поле."
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Приоритет (на ваш взгляд)
+      options:
+        - 🔴 Критично — без этого сложно работать
+        - 🟡 Важно — сильно упростило бы работу
+        - 🟢 Хотелось бы — приятное дополнение
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Готовность участвовать
+      options:
+        - label: "Я готов протестировать эту возможность, когда она будет реализована"
+        - label: "Я готов помочь с реализацией (если это возможно)"

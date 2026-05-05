@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: ❓ Вопрос / Обсуждение
+    url: https://github.com/DarkwingDuck48/rsproject/discussions
+    about: Задайте вопрос или начните обсуждение в Discussions
+  - name: 📖 Документация
+    url: https://github.com/DarkwingDuck48/rsproject#readme
+    about: Прочитайте README — возможно, там уже есть ответ на ваш вопрос
