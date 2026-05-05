@@ -254,6 +254,25 @@ impl ResourcePool for LocalResourcePool {
         };
         Ok(hourly_rate * hours * allocation.engagement_rate)
     }
+
+    fn calculate_allocation_time(
+        &self,
+        allocation_id: &Uuid,
+        calendar: &ProjectCalendar,
+    ) -> anyhow::Result<f64> {
+        let allocation = self
+            .allocations
+            .get(allocation_id)
+            .ok_or_else(|| anyhow::anyhow!("Не найдено назначение"))?;
+        let resource = self
+            .resources
+            .get(&allocation.resource_id)
+            .ok_or_else(|| anyhow::anyhow!("Ресурс из назначения не найден!"))?;
+        // Определяем длительность работы из назначения
+
+        let hours = allocation.time_window.duration_hours(calendar) as f64;
+        Ok(hours * allocation.engagement_rate)
+    }
 }
 
 #[cfg(test)]

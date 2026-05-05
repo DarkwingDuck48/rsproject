@@ -1,9 +1,7 @@
 mod app;
-mod tabs;
 
 pub use app::ProjectApp;
 use eframe::egui;
-pub use tabs::{gantt, project, resources, task};
 
 fn main() -> eframe::Result<()> {
     // Большее и удобное стартовое окно приложения

@@ -5,7 +5,7 @@ pub mod cust_exceptions;
 mod services;
 
 pub use base_structures::BasicGettersForStructures;
-pub use base_structures::DependencyType;
+pub use base_structures::{Dependency, DependencyType};
 pub use base_structures::{
     ExceptionPeriod, ExceptionType, Project, ProjectContainer, RateMeasure, SingleProjectContainer,
     Task, TimeWindow,

@@ -153,6 +153,13 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             .unwrap_or_default()
     }
 
+    pub fn get_task_by_id(&self, project_id: &Uuid, task_id: &Uuid) -> Option<&Task> {
+        self.get_all_tasks(*project_id)
+            .into_iter()
+            .find(|&task| task.get_id() == task_id)
+            .map(|v| v as _)
+    }
+
     pub fn get_root_tasks(&self, project_id: Uuid) -> Vec<&Task> {
         self.container
             .get_project(&project_id)
@@ -211,7 +218,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         if let Some(n) = name {
             task.name = n;
         }
-
+        task.parent_id = parent_id;
         if task.is_summary && (start.is_some() || end.is_some()) {
             anyhow::bail!("Cannot set start/end dates for summary task");
         }
@@ -419,11 +426,59 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             Ok(task_cost)
         }
     }
+
+    pub fn calculate_task_time(&self, project_id: &Uuid, task_id: &Uuid) -> anyhow::Result<f64> {
+        let project = self
+            .container
+            .get_project(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Проект не найден"))?;
+
+        let task = project
+            .tasks
+            .get(task_id)
+            .ok_or_else(|| anyhow::anyhow!("Задача не найдена"))?;
+
+        if task.is_summary {
+            let subtasks = self.get_subtasks(project_id, *task.get_id());
+            let mut task_time = 0.0;
+            for sub in subtasks {
+                task_time += self.calculate_task_time(project_id, sub.get_id())?;
+            }
+            Ok(task_time)
+        } else {
+            let calendar = self
+                .container
+                .calendar(project_id)
+                .ok_or_else(|| anyhow::anyhow!("Календарь для проекта не установлен"))?;
+
+            let mut task_time = 0.0;
+
+            let resource_pool = self.container.resource_pool();
+
+            for alloc_id in task.get_resource_allocations() {
+                let calendar = self.container.calendar(project_id).ok_or_else(|| {
+                    anyhow::anyhow!("Календарь для проекта {} не найден", project_id)
+                })?;
+                task_time += resource_pool.calculate_allocation_time(alloc_id, calendar)?;
+            }
+
+            Ok(task_time)
+        }
+    }
     pub fn calculate_project_cost(&self, project_id: Uuid) -> anyhow::Result<f64> {
         let tasks = self.get_root_tasks(project_id);
         let mut total = 0.0;
         for task in tasks {
             total += self.calculate_task_cost(&project_id, task.get_id())?;
+        }
+        Ok(total)
+    }
+
+    pub fn calculate_project_time(&self, project_id: Uuid) -> anyhow::Result<f64> {
+        let tasks = self.get_root_tasks(project_id);
+        let mut total = 0.0;
+        for task in tasks {
+            total += self.calculate_task_time(&project_id, task.get_id())?;
         }
         Ok(total)
     }

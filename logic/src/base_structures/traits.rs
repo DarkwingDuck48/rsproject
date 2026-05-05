@@ -25,6 +25,11 @@ pub trait ResourcePool {
         allocation_id: &Uuid,
         calendar: &ProjectCalendar,
     ) -> Result<f64>;
+    fn calculate_allocation_time(
+        &self,
+        allocation_id: &Uuid,
+        calendar: &ProjectCalendar,
+    ) -> Result<f64>;
 }
 
 pub trait ProjectContainer {

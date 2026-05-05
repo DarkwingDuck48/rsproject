@@ -2,7 +2,7 @@ use crate::ProjectApp;
 use chrono::{DateTime, Utc};
 use eframe::egui::{self, Ui};
 use egui_extras::{Column, TableBuilder};
-use logic::{BasicGettersForStructures, ProjectContainer, TaskService};
+use logic::{BasicGettersForStructures, DependencyType, ProjectContainer, TaskService};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -12,9 +12,9 @@ struct TaskViewData {
     name: String,
     start_date: DateTime<Utc>,
     end_date: DateTime<Utc>,
-    status: String,
     is_summary: bool,
     parent_id: Option<Uuid>,
+    dependencies: Vec<(String, DependencyType)>,
     cost: f64,
     depth: usize, // вычисляется заранее
 }
@@ -48,14 +48,22 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
             let cost = task_service
                 .calculate_task_cost(&project_id, task.get_id())
                 .unwrap_or(0.0);
+            let dependencies = task.get_dependencies().clone();
+            let mut calculated_deps = vec![];
+            for dependency in dependencies {
+                let task_dep = task_service.get_task_by_id(&project_id, &dependency.depends_on);
+                if let Some(t) = task_dep {
+                    calculated_deps.push((t.name.clone(), dependency.dependency_type))
+                };
+            }
             let data = TaskViewData {
                 id: *task.get_id(),
                 name: task.name.clone(),
                 start_date: *task.get_date_start(),
                 end_date: *task.get_date_end(),
-                status: format!("{:?}", task.get_status()),
                 is_summary: task.is_summary,
                 parent_id: task.parent_id,
+                dependencies: calculated_deps,
                 cost,
                 depth: 0, // временно
             };
@@ -128,8 +136,9 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
         .columns(Column::auto_with_initial_suggestion(200.0), 1) // Задача + отступы
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Начало
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Окончание
+        .columns(Column::auto_with_initial_suggestion(100.0), 1) // Зависимости
         .columns(Column::auto_with_initial_suggestion(80.0), 1) // Стоимость
-        .columns(Column::auto_with_initial_suggestion(100.0), 1) // Статус
+        // .columns(Column::auto_with_initial_suggestion(100.0), 1) // Статус
         .columns(Column::auto_with_initial_suggestion(100.0), 1) // Действия
         .header(20.0, |mut header| {
             header.col(|ui| {
@@ -142,11 +151,14 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                 ui.strong("Окончание");
             });
             header.col(|ui| {
-                ui.strong("Стоимость");
+                ui.strong("Зависимости");
             });
             header.col(|ui| {
-                ui.strong("Статус");
+                ui.strong("Стоимость");
             });
+            // header.col(|ui| {
+            //     ui.strong("Статус");
+            // });
             header.col(|ui| {
                 ui.strong("Действия");
             });
@@ -172,11 +184,25 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                     ui.label(task.end_date.format("%Y-%m-%d").to_string());
                 });
                 row.col(|ui| {
-                    ui.label(format!("{:.2}", task.cost));
+                    ui.horizontal_wrapped(|ui| {
+                        for (i, (dep_name, dep_type)) in task.dependencies.iter().enumerate() {
+                            if i > 0 {
+                                ui.label("; ");
+                            }
+                            let color = match dep_type {
+                                DependencyType::Blocking => egui::Color32::DARK_RED,
+                                DependencyType::NonBlocking => egui::Color32::DARK_GRAY,
+                            };
+                            ui.colored_label(color, dep_name);
+                        }
+                    });
                 });
                 row.col(|ui| {
-                    ui.label(&task.status);
+                    ui.label(format!("{:.2}", task.cost));
                 });
+                // row.col(|ui| {
+                //     ui.label(&task.status);
+                // });
                 row.col(|ui| {
                     if !task.is_summary {
                         if ui.button("󰀔").clicked() {

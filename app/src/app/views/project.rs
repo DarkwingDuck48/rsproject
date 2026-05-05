@@ -13,7 +13,7 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
 
     let resources_count = app.container.resource_pool().get_resources().len();
     let project_id = *app.selected_project_id.as_ref().unwrap();
-    let (regular_count, summary_count, total_cost) = {
+    let (regular_count, summary_count, total_cost, full_time) = {
         let task_service = TaskService::new(&mut app.container);
         let all_tasks = task_service.get_all_tasks(project_id);
         let regular = all_tasks.iter().filter(|t| !t.is_summary).count();
@@ -21,7 +21,10 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
         let cost = task_service
             .calculate_project_cost(project_id)
             .unwrap_or(0.0);
-        (regular, summary, cost)
+        let full_time = task_service
+            .calculate_project_time(project_id)
+            .unwrap_or(0.0);
+        (regular, summary, cost, full_time)
     };
 
     if app.selected_project_id.is_some() {
@@ -72,6 +75,13 @@ pub fn show(ui: &mut Ui, app: &mut ProjectApp) {
                         ui.label("💰 Общая стоимость:");
                         ui.label(
                             egui::RichText::new(format!("{:.2}", total_cost))
+                                .color(egui::Color32::DARK_GREEN)
+                                .strong(),
+                        );
+                        ui.end_row();
+                        ui.label("⏳ Общие трудозатраты:");
+                        ui.label(
+                            egui::RichText::new(format!("{:.2} ч.", full_time))
                                 .color(egui::Color32::DARK_GREEN)
                                 .strong(),
                         );

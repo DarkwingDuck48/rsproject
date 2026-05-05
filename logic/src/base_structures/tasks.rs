@@ -143,7 +143,9 @@ impl Task {
     }
 
     pub fn add_dependency(&mut self, dependency: Dependency) {
-        self.dependencies.push(dependency)
+        if !self.dependencies.contains(&dependency) {
+            self.dependencies.push(dependency)
+        }
     }
 
     pub fn get_dependencies(&self) -> &Vec<Dependency> {
