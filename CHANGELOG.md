@@ -13,6 +13,8 @@
 - Руководство для участников (`CONTRIBUTING.md`)
 - Кодекс поведения (`CODE_OF_CONDUCT.md`) — Contributor Covenant 2.0
 - Конфигурация шаблонов issues (`config.yml`) — запрет пустых issues
+- Добавлен CHANGELOG.md
+- Добавлено окно About (О программе)
 
 ## [0.1.0] — 2025-07-04
 

@@ -17,6 +17,9 @@ impl eframe::App for ProjectApp {
         if self.show_new_project_dialog {
             dialogs::new_project::show(ctx, self);
         }
+        if self.show_about_dialog {
+            dialogs::about::show(ctx, self);
+        }
 
         if self.show_new_task_dialog {
             dialogs::new_task::show(ctx, self);

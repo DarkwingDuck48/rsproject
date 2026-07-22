@@ -20,6 +20,8 @@ pub struct ProjectApp {
     pub(crate) current_theme: AppTheme,
 
     pub(crate) show_close_project_dialog: bool,
+
+    pub(crate) show_about_dialog: bool,
     // Create project dialog
     pub(crate) show_new_project_dialog: bool,
     pub(crate) new_project_name: String,
@@ -73,6 +75,7 @@ impl Default for ProjectApp {
             new_task_dependency_type: None,
             show_close_project_dialog: false,
             critical_path: None,
+            show_about_dialog: false,
             show_new_project_dialog: false,
             show_new_task_dialog: false,
             show_new_resource_dialog: false,
@@ -127,6 +130,7 @@ impl ProjectApp {
             new_task_dependency_task: None,
             new_task_dependency_type: None,
             show_close_project_dialog: false,
+            show_about_dialog: false,
             selected_tab: View::Project,
             selected_project_id: Some(project_id),
             show_new_project_dialog: false,

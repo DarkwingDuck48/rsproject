@@ -1,3 +1,4 @@
+pub mod about;
 pub mod assign_resource;
 pub mod close_project;
 pub mod edit_project;

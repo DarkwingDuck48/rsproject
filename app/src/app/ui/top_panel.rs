@@ -33,6 +33,11 @@ pub fn show(ctx: &egui::Context, app: &mut ProjectApp) {
                     ui.close();
                 }
             });
+            ui.separator();
+            if ui.button("ℹ️ О программе").clicked() {
+                app.show_about_dialog = true;
+                ui.close();
+            }
 
             ui.separator();
             if ui.button("Выход").clicked() {
