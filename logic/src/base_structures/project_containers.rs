@@ -52,7 +52,24 @@ impl ProjectContainer for SingleProjectContainer {
             ))
         }
     }
+    fn update_project(&mut self, id: &Uuid, project: Project) -> anyhow::Result<()> {
+        if project.get_id() != id {
+            return Err(anyhow::Error::msg("Project ID Mismatch"));
+        }
 
+        match &self.project {
+            None => return Err(anyhow::Error::msg("Project not found")),
+            Some(p) => {
+                if p.get_id() != id {
+                    return Err(anyhow::Error::msg("Project ID Mismatch"));
+                }
+            }
+        }
+        let calendar = project.calendar.clone();
+        self.calendars.insert(*project.get_id(), calendar);
+        self.project = Some(project);
+        Ok(())
+    }
     fn get_project(&self, id: &Uuid) -> Option<&Project> {
         if let Some(prj) = &self.project {
             if prj.get_id() == id { Some(prj) } else { None }

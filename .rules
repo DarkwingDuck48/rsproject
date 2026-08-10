@@ -1,16 +1,24 @@
 ## О проекте
 - RS Project — Open Source аналог MS Project на Rust
 - Это обучающий проект: не пиши код самостоятельно, веди себя как ментор
+- Всегда объясняй наиболее важные моменты в коде, архитектуре или командах
 - Следуй Best Practice при написании кода
+- **Текущий стрим (5):** Миграция с EGui на Tauri v2
+- **Главная цель стрима 5:** научиться использовать Tauri в проектах на Rust
 
-## Структура проекта
-- Cargo workspace из двух крейтов: `app` и `logic`
-- `./app` — десктоп-приложение на egui (eframe 0.33, glow backend)
-- `./logic` — вся бизнес-логика: структуры данных и сервисы
+## Структура проектаadsdd
+- Cargo workspace из двух крейтов: `app` (Tauri) и `logic`
+- `./app` — десктоп-приложение на Tauri v2 + React + JavaScript
+  - `./src-tauri/` — Rust-бекенд (Tauri commands, state)
+  - `./src/` — React/JS фронтенд (Vite)
+- `./app_egui_old/` — старый EGui-код (референс, будет удалён в задаче 5.18)
+- `./logic` — вся бизнес-логика: структуры данных и сервисы (без изменений)
 
 ## Технический стек
 - Rust edition 2024
-- GUI: eframe 0.33, egui_extras 0.33 (datepicker), rfd (file dialogs)
+- GUI: Tauri v2 + React 18 + JavaScript + Vite
+  - Tauri-плагины: `dialog` (файловые диалоги), `shell` (внешние ссылки)
+  - Стилизация: CSS Modules + CSS Variables (темизация)
 - Сериализация: serde + serde_json
 - Дата/время: chrono 0.4
 - Идентификаторы: uuid v4
@@ -32,16 +40,30 @@
   - `task_service.rs` — сервис задач
   - `resource_service.rs` — сервис ресурсов (проверка доступности)
 
-## Архитектура `app`
-- `state.rs` — состояние приложения
-- `app_impl.rs` — реализация eframe::App
-- `views/` — экраны (проект, задачи, ресурсы, диаграмма Ганта)
-- `dialogs/` — диалоговые окна
-- `handlers/` — обработчики событий
-- `theme.rs` — тема оформления
-- `ui.rs` — общие UI-компоненты
-- Бинарник: `rsproject` (app/src/main.rs)
-- Точка входа библиотеки: `app/src/lib.rs`
+## Архитектура `app` (Tauri v2)
+- `src-tauri/` — Rust-бекенд:
+  - `src/main.rs` — точка входа Tauri
+  - `src/lib.rs` — `tauri::Builder` + регистрация плагинов
+  - `src/state.rs` — `AppState` с `Mutex<SingleProjectContainer>`
+  - `src/commands/` — Tauri-команды (`#[tauri::command]`), аналог старых handlers:
+    - `project.rs` — создание, открытие, сохранение, закрытие проекта
+    - `task.rs` — CRUD задач, расчёт критического пути
+    - `resource.rs` — CRUD ресурсов, назначения, проверка доступности
+  - `tauri.conf.json` — конфигурация окна, бандла, идентификатор
+  - `capabilities/default.json` — разрешения плагинов
+- `src/` — React/TS фронтенд:
+  - `main.tsx` — рендер React-приложения
+  - `App.tsx` — корневой компонент, стейт вкладок
+  - `components/layout/` — TopPanel, SidePanel, CentralPanel
+  - `components/views/` — ProjectView, TasksView, ResourcesView, GanttView
+  - `components/dialogs/` — 9 диалогов (About, NewProject, EditProject, CloseProject, NewTask, TaskDetails, NewResource, AssignResource, UnavailablePeriod)
+  - `hooks/` — кастомные React-хуки
+  - `types/` — JSDoc-типы, документирующие структуры `logic`
+  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд
+- `index.html` — точка входа WebView
+- `package.json` — npm-зависимости
+- `vite.config.ts` — конфигурация Vite (сборщик фронтенда)
+- Бинарник: `rsproject` (app/src-tauri/src/main.rs)
 
 ## Реализованные возможности
 - Создание/редактирование проектов, задач и ресурсов
@@ -57,12 +79,15 @@
 
 ## Сборка и тесты
 ```bash
-cargo build --release   # сборка
-cargo build -p logic    # сборка только logic
-cargo build -p app      # сборка только app
-cargo test              # запуск всех тестов (логика: logic/tests/integration.rs)
-cargo fmt               # форматирование кода
-cargo clippy            # линтер
+cargo build --release       # сборка всего workspace
+cargo build -p logic        # сборка только logic
+cargo build -p app          # сборка только Tauri-бекенда
+cargo test                  # запуск всех тестов (логика: logic/tests/integration.rs)
+cargo fmt                   # форматирование кода
+cargo clippy                # линтер
+cd app && npm run dev       # запуск Vite dev-сервера (фронтенд)
+cargo tauri dev             # запуск полного приложения (из app/src-tauri/)
+cargo tauri build           # production-сборка бандла
 ```
 Бинарник после сборки: `./target/release/rsproject`
 
@@ -71,6 +96,7 @@ cargo clippy            # линтер
 - При начале новой сессии — всегда первым делом прочитай `todo.md`, чтобы знать текущий статус задач.
 - Пользователь сообщает, какую задачу он взял (например, «я делаю задачу 1.1»).
 - Пользователь выполняет задачу самостоятельно, затем я делаю код-ревью.
+- В случае работы над фронтендом, ты можешь писать код, если это визуальные изменения.
 - После успешного ревью — помечаю задачу как выполненную и при необходимости ставлю следующую.
 - Новые задачи добавляю в `todo.md` по мере появления идей или после обсуждения.
 

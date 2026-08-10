@@ -1,5 +1,5 @@
 [workspace]
-members = ["app", "logic"]
+members = ["app/src-tauri", "logic"]
 resolver = '3'
 
 [workspace.package]

@@ -6,7 +6,6 @@ use uuid::Uuid;
 use crate::base_structures::{
     project_calendar::ProjectCalendar, tasks::Task, traits::BasicGettersForStructures,
 };
-
 /// Структура Project - главная структура всего проекта
 /// Она хранит в себе все задачи и зависимости между ними
 
