@@ -21,18 +21,18 @@ pub struct ProjectInfo {
 }
 
 impl ProjectInfo {
-    pub fn from_state(state: tauri::State<'_, AppState>, project_id: Uuid) -> Self {
+    pub fn from_state(state: tauri::State<'_, AppState>, project_id: Uuid) -> Result<Self, String> {
         let container = state.container();
         let project = container
             .get_project(&project_id)
-            .expect(&format!("Can't find project with {}", project_id));
-        Self {
+            .ok_or(format!("Проект с ID {} не найден", project_id))?;
+        Ok(Self {
             id: project_id,
             name: project.name.clone(),
             description: project.description.clone(),
             date_start: project.date_start,
             date_end: project.date_end,
             duration_days: project.duration.num_days(),
-        }
+        })
     }
 }

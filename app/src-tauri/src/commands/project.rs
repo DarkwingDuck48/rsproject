@@ -5,7 +5,7 @@ use crate::state::AppState;
 use chrono::{DateTime, NaiveDate, Utc};
 use logic::SingleProjectContainer;
 use logic::{BasicGettersForStructures, Project, ProjectContainer, TaskService};
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogResult};
+use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
 fn parse_date(date: &str) -> Result<DateTime<Utc>, String> {
@@ -57,7 +57,7 @@ pub fn edit_project(
 
     let project_id = {
         let id = state.selected_project_id.lock().unwrap();
-        id.ok_or("No selected project".to_string())?
+        id.ok_or("Не выбран проект".to_string())?
     };
     let mut container = state.container();
     {
@@ -65,13 +65,16 @@ pub fn edit_project(
         let tasks = task_service.get_all_tasks(project_id);
         for task in tasks {
             if *task.get_date_start() < start || *task.get_date_end() > end {
-                return Err(format!("Task '{}' not fit to new project dates", task.name));
+                return Err(format!(
+                    "Даты задачи '{}' не входят в даты проекта",
+                    task.name
+                ));
             }
         }
     }
     let project = container
         .get_project_mut(&project_id)
-        .ok_or("Project not found".to_string())?;
+        .ok_or("Проект не найден".to_string())?;
 
     project.name = name;
     project.description = description;
@@ -124,7 +127,7 @@ pub fn open_project(
 
 #[tauri::command]
 pub fn close_project(state: tauri::State<'_, AppState>) -> Result<(), String> {
-    // Сначала надо спросить пользователя - хочет ли он сохранить файл
+    // Закрываем проект - диалог сохранения показываем на фронтенде
     *state.container() = SingleProjectContainer::new();
     *state.selected_project_id.lock().unwrap() = None;
     *state.selected_task_id.lock().unwrap() = None;
@@ -170,13 +173,13 @@ pub fn get_project_info(
     project_id: Option<Uuid>,
 ) -> Result<ProjectInfo, String> {
     match project_id {
-        Some(pr) => Ok(ProjectInfo::from_state(state, pr)),
+        Some(pr) => ProjectInfo::from_state(state, pr),
         None => {
             let pr = {
                 let id = state.selected_project_id.lock().unwrap();
-                id.ok_or("No selected project".to_string())?
+                id.ok_or("Не выбран проект".to_string())?
             };
-            Ok(ProjectInfo::from_state(state, pr))
+            ProjectInfo::from_state(state, pr)
         }
     }
 }
