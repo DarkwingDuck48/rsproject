@@ -3,7 +3,9 @@
 use crate::ProjectInfo;
 use crate::state::AppState;
 use chrono::{DateTime, NaiveDate, Utc};
+use logic::SingleProjectContainer;
 use logic::{BasicGettersForStructures, Project, ProjectContainer, TaskService};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogResult};
 use uuid::Uuid;
 
 fn parse_date(date: &str) -> Result<DateTime<Utc>, String> {
@@ -85,17 +87,83 @@ pub fn open_project(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    !todo!()
+    let path = app
+        .dialog()
+        .file()
+        .add_filter("JSON", &["json"])
+        .blocking_pick_file();
+
+    let path = match path {
+        Some(p) => p,
+        None => return Ok(()),
+    };
+    let file_path = path
+        .as_path()
+        .ok_or("Не удалось получить путь к файлу".to_string())?;
+
+    let content =
+        std::fs::read_to_string(file_path).map_err(|e| format!("Ошибка чтения файла: {}", e))?;
+
+    let new_container: SingleProjectContainer =
+        serde_json::from_str(&content).map_err(|e| format!("Ошибка обработки файла: {}", e))?;
+
+    let project_id = new_container
+        .list_projects()
+        .first()
+        .map(|p| *p.get_id())
+        .ok_or("Не нашли проектов в загруженном файле")?;
+    *state.container() = new_container;
+    *state.selected_project_id.lock().unwrap() = Some(project_id);
+
+    // Сброс состояний
+    *state.selected_task_id.lock().unwrap() = None;
+    *state.selected_resource_id.lock().unwrap() = None;
+    *state.critical_path.lock().unwrap() = None;
+    Ok(())
 }
 
 #[tauri::command]
 pub fn close_project(state: tauri::State<'_, AppState>) -> Result<(), String> {
-    !todo!()
+    // Сначала надо спросить пользователя - хочет ли он сохранить файл
+    *state.container() = SingleProjectContainer::new();
+    *state.selected_project_id.lock().unwrap() = None;
+    *state.selected_task_id.lock().unwrap() = None;
+    *state.selected_resource_id.lock().unwrap() = None;
+    *state.critical_path.lock().unwrap() = None;
+    Ok(())
 }
+
 #[tauri::command]
-pub fn save_project(state: tauri::State<'_, AppState>) -> Result<(), String> {
-    !todo!()
+pub fn save_project(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    // 1. Сериализуем (держим блокировку только на время сериализации)
+    let content = {
+        let container = state.container();
+        serde_json::to_string_pretty(&*container)
+            .map_err(|e| format!("Не удалось сохранить файл: {}", e))?
+    };
+
+    // 2. Диалог сохранения
+    let path = app
+        .dialog()
+        .file()
+        .add_filter("JSON", &["json"])
+        .blocking_save_file();
+
+    let path = match path {
+        Some(p) => p,
+        None => return Ok(()),
+    };
+
+    // 3. Пишем в файл
+    let file_path = path.as_path().ok_or("Не удалось получить путь к файлу")?;
+    std::fs::write(file_path, &content).map_err(|e| format!("Ошибка записи файла: {}", e))?;
+
+    Ok(())
 }
+
 #[tauri::command]
 pub fn get_project_info(
     state: tauri::State<'_, AppState>,
