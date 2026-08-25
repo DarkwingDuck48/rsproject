@@ -4,7 +4,7 @@
 //// Структура ProjectInfo - DTO объект проекта для фронтенда
 
 use chrono::{DateTime, Utc};
-use logic::ProjectContainer;
+use logic::{DependencyType, ProjectContainer, TaskStatus};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -35,4 +35,32 @@ impl ProjectInfo {
             duration_days: project.duration.num_days(),
         })
     }
+}
+
+#[derive(Serialize, Clone)]
+pub struct TaskDependencyInfo {
+    depends_on: Uuid,
+    name: String,
+    dependency_type: DependencyType,
+    lag_days: Option<i64>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct TaskInfo {
+    id: Uuid,
+    name: String,
+    date_start: DateTime<Utc>,
+    date_end: DateTime<Utc>,
+    duration_days: i64,
+    status: TaskStatus,
+    is_summary: bool,
+    parent_id: Option<Uuid>,
+    depth: i64,
+    cost: f64,
+    dependencies: Vec<TaskDependencyInfo>,
+}
+#[derive(Serialize, Clone)]
+pub struct TaskTreeNode {
+    task: TaskInfo,
+    children: Vec<TaskTreeNode>,
 }

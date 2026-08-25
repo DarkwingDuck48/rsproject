@@ -1,21 +1,12 @@
 //! Project commands.
 
 use crate::ProjectInfo;
+use crate::commands::utils::parse_date;
 use crate::state::AppState;
-use chrono::{DateTime, NaiveDate, Utc};
 use logic::SingleProjectContainer;
 use logic::{BasicGettersForStructures, Project, ProjectContainer, TaskService};
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
-
-fn parse_date(date: &str) -> Result<DateTime<Utc>, String> {
-    let parsed_date = NaiveDate::parse_from_str(date, "%Y-%m-%d")
-        .map_err(|e| e.to_string())?
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_utc();
-    Ok(parsed_date)
-}
 
 // Создание проекта
 #[tauri::command]
