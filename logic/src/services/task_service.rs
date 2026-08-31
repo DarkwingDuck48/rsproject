@@ -1,6 +1,6 @@
 /// Описательная часть по сервису работы с Задачами в приложении
 use crate::{
-    Project, TimeWindow,
+    Project, TaskStatus, TimeWindow,
     base_structures::{
         AllocationRequest, BasicGettersForStructures, Dependency, DependencyType, ProjectContainer,
         Task,
@@ -200,7 +200,8 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         name: Option<String>,
         start: Option<DateTime<Utc>>,
         end: Option<DateTime<Utc>>,
-        parent_id: Option<Uuid>,
+        parent_id: Option<Option<Uuid>>,
+        status: Option<TaskStatus>,
     ) -> Result<()> {
         let project = self
             .container
@@ -218,7 +219,12 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         if let Some(n) = name {
             task.name = n;
         }
-        task.parent_id = parent_id;
+        // Может быть Some(None) - Тогда должны будем очистить родителя
+        // None -> Ничего не делаем, поле не менялось
+        // Some(UUID) -> заменяем значение
+        if let Some(new_parent) = parent_id {
+            task.parent_id = new_parent;
+        }
         if task.is_summary && (start.is_some() || end.is_some()) {
             anyhow::bail!("Cannot set start/end dates for summary task");
         }
@@ -235,9 +241,11 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             }
             task.date_end = e;
         }
-
+        if let Some(st) = status {
+            task.change_status(st);
+        }
         self.update_summary_dates(&project_id, task_id)?;
-        if let Some(p_id) = parent_id {
+        if let Some(Some(p_id)) = parent_id {
             self.update_summary_dates(&project_id, p_id)?;
         }
 
@@ -253,12 +261,12 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         if !project.tasks.contains_key(&task_id) {
             anyhow::bail!("Task not found");
         }
-
+        let parent_id = project.tasks.get(&task_id).and_then(|t| t.parent_id);
         // Удаляем задачу
         project.tasks.remove(&task_id);
 
         // Если у задачи был родитель, обновляем его даты
-        if let Some(parent_id) = project.tasks.get(&task_id).and_then(|t| t.parent_id) {
+        if let Some(parent_id) = parent_id {
             self.update_summary_dates(&project_id, parent_id)?;
         }
 
@@ -548,6 +556,7 @@ mod tests {
             Some(new_start),
             Some(new_end),
             None,
+            Some(TaskStatus::Complete),
         )?;
 
         // Проверяем изменения
@@ -556,6 +565,7 @@ mod tests {
         assert_eq!(task.name, new_name);
         assert_eq!(*task.get_date_start(), new_start);
         assert_eq!(*task.get_date_end(), new_end);
+        assert_eq!(task.get_status(), &TaskStatus::Complete);
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 //! Project commands.
 
 use crate::ProjectInfo;
-use crate::commands::utils::parse_date;
+use crate::commands::utils::{parse_date, resolve_project_id};
 use crate::state::AppState;
 use logic::SingleProjectContainer;
 use logic::{BasicGettersForStructures, Project, ProjectContainer, TaskService};
@@ -46,10 +46,7 @@ pub fn edit_project(
     let start = parse_date(&date_start)?;
     let end = parse_date(&date_end)?;
 
-    let project_id = {
-        let id = state.selected_project_id.lock().unwrap();
-        id.ok_or("Не выбран проект".to_string())?
-    };
+    let project_id = resolve_project_id(&state, None)?;
     let mut container = state.container();
     {
         let task_service = TaskService::new(&mut *container);
@@ -163,14 +160,6 @@ pub fn get_project_info(
     state: tauri::State<'_, AppState>,
     project_id: Option<Uuid>,
 ) -> Result<ProjectInfo, String> {
-    match project_id {
-        Some(pr) => ProjectInfo::from_state(state, pr),
-        None => {
-            let pr = {
-                let id = state.selected_project_id.lock().unwrap();
-                id.ok_or("Не выбран проект".to_string())?
-            };
-            ProjectInfo::from_state(state, pr)
-        }
-    }
+    let res_project_id = resolve_project_id(&state, project_id)?;
+    ProjectInfo::from_state(state, res_project_id)
 }

@@ -6,7 +6,7 @@ use crate::base_structures::{
     Dependency, ProjectCreationErrors, traits::BasicGettersForStructures,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum TaskStatus {
     New,
     Wait,
@@ -43,39 +43,6 @@ pub struct Task {
 }
 
 impl Task {
-    #[deprecated(note = "use `new_regular` or `new_summary` for task creation")]
-    pub fn new(
-        name: impl Into<String>,
-        date_start: DateTime<Utc>,
-        date_end: DateTime<Utc>,
-        parent_id: Option<Uuid>,
-        is_summary: bool,
-    ) -> Result<Self, ProjectCreationErrors> {
-        if date_start >= date_end && !is_summary {
-            return Err(ProjectCreationErrors::InvalidTaskDuration {
-                date_start,
-                date_end,
-            });
-        }
-
-        Ok(Self {
-            id: Uuid::new_v4(),
-            name: name.into(),
-            date_start,
-            date_end,
-            status: TaskStatus::New,
-            duration: if is_summary {
-                TimeDelta::zero()
-            } else {
-                date_end - date_start
-            },
-            resource_allocations: vec![],
-            dependencies: vec![],
-            parent_id,
-            is_summary,
-        })
-    }
-
     pub fn new_regular(
         name: impl Into<String>,
         date_start: DateTime<Utc>,
@@ -103,6 +70,7 @@ impl Task {
         })
     }
 
+    // Creates a summary task
     pub fn new_summary(
         name: impl Into<String>,
         date_start: DateTime<Utc>,
