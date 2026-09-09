@@ -91,9 +91,7 @@ impl ProjectContainer for SingleProjectContainer {
     }
 
     fn get_project_mut(&mut self, id: &Uuid) -> Option<&mut Project> {
-        self.project
-            .as_mut()
-            .and_then(|p| if p.get_id() == id { Some(p) } else { None })
+        self.project.as_mut().filter(|p| p.get_id() == id)
     }
 
     fn list_projects(&self) -> Vec<&Project> {

@@ -7,8 +7,8 @@ mod services;
 pub use base_structures::BasicGettersForStructures;
 pub use base_structures::{Dependency, DependencyType};
 pub use base_structures::{
-    ExceptionPeriod, ExceptionType, Project, ProjectContainer, RateMeasure, SingleProjectContainer,
-    Task, TaskStatus, TimeWindow,
+    ExceptionPeriod, ExceptionType, Project, ProjectContainer, RateMeasure, Resource,
+    SingleProjectContainer, Task, TaskStatus, TimeWindow,
 };
 
 pub use services::{ResourceService, Scheduler, TaskService};

@@ -25,6 +25,12 @@ pub fn run() {
             commands::task::delete_task,
             commands::task::get_task_tree,
             commands::task::recalculate_critical_path,
+            commands::resources::add_resource,
+            commands::resources::edit_resource,
+            commands::resources::get_resources,
+            commands::resources::delete_resource,
+            commands::resources::add_unavailable_period,
+            commands::resources::check_availability,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
