@@ -1,9 +1,29 @@
-use logic::{BasicGettersForStructures, Scheduler, SingleProjectContainer, Task, TaskService};
+use chrono::TimeDelta;
+use logic::{
+    BasicGettersForStructures, DependencyType, Scheduler, SingleProjectContainer, Task,
+    TaskService, TaskUpdate,
+};
 use uuid::Uuid;
 
 use crate::commands::utils::{parse_date, resolve_project_id};
 use crate::dto::{TaskInfo, TaskTreeNode, TaskUpdateDto};
 use crate::state::AppState;
+
+impl TryFrom<TaskUpdateDto> for TaskUpdate {
+    type Error = String;
+
+    fn try_from(dto: TaskUpdateDto) -> Result<Self, Self::Error> {
+        let start = dto.date_start.as_deref().map(parse_date).transpose()?;
+        let end = dto.date_end.as_deref().map(parse_date).transpose()?;
+        Ok(TaskUpdate {
+            name: dto.name,
+            start,
+            end,
+            parent_id: dto.parent_id,
+            status: dto.status,
+        })
+    }
+}
 
 #[tauri::command]
 pub fn add_task(
@@ -50,28 +70,10 @@ pub fn edit_task(
     let mut container = state.container();
     let mut task_service = TaskService::new(&mut *container);
 
-    let updated_date_start = task_update
-        .date_start
-        .as_deref()
-        .map(parse_date)
-        .transpose()?;
-
-    let updated_date_end = task_update
-        .date_end
-        .as_deref()
-        .map(parse_date)
-        .transpose()?;
+    let update = TaskUpdate::try_from(task_update)?;
 
     task_service
-        .update_task(
-            project_id,
-            task_id,
-            task_update.name,
-            updated_date_start,
-            updated_date_end,
-            task_update.parent_id,
-            task_update.status,
-        )
+        .update_task(project_id, task_id, update)
         .map_err(|e| e.to_string())?;
     *state.critical_path.lock().unwrap() = None;
     Ok(())
@@ -160,4 +162,45 @@ pub fn recalculate_critical_path(
     };
     *state.critical_path.lock().unwrap() = Some(critical_path.clone());
     Ok(critical_path)
+}
+
+#[tauri::command]
+pub fn add_dependency(
+    state: tauri::State<AppState>,
+    task_id: Uuid,
+    depends_on: Uuid,
+    dep_type: DependencyType,
+    lag_days: Option<i64>,
+) -> Result<(), String> {
+    let project_id = resolve_project_id(&state, None)?;
+
+    let lag = match lag_days {
+        Some(days) => Some(TimeDelta::try_days(days).ok_or("Лаг слишком большой")?),
+        _ => None,
+    };
+
+    let mut container = state.container();
+    let mut task_service = TaskService::new(&mut *container);
+    task_service
+        .add_dependency(project_id, task_id, depends_on, dep_type, lag)
+        .map_err(|e| e.to_string())?;
+    *state.critical_path.lock().unwrap() = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_dependency(
+    state: tauri::State<AppState>,
+    task_id: Uuid,
+    depends_on: Uuid,
+) -> Result<(), String> {
+    let project_id = resolve_project_id(&state, None)?;
+
+    let mut container = state.container();
+    let mut task_service = TaskService::new(&mut *container);
+    task_service
+        .remove_dependency(&project_id, &task_id, depends_on)
+        .map_err(|e| e.to_string())?;
+    *state.critical_path.lock().unwrap() = None;
+    Ok(())
 }

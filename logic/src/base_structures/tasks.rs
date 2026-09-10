@@ -1,3 +1,4 @@
+use anyhow::bail;
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -110,14 +111,24 @@ impl Task {
         &self.resource_allocations
     }
 
-    pub fn add_dependency(&mut self, dependency: Dependency) {
-        if !self.dependencies.contains(&dependency) {
-            self.dependencies.push(dependency)
+    pub fn add_dependency(&mut self, dependency: Dependency) -> Result<(), anyhow::Error> {
+        if self
+            .dependencies
+            .iter()
+            .any(|d| d.depends_on == dependency.depends_on)
+        {
+            bail!("Задача не может зависеть от одной и той же задачи");
         }
+        self.dependencies.push(dependency);
+        Ok(())
     }
 
     pub fn get_dependencies(&self) -> &Vec<Dependency> {
         &self.dependencies
+    }
+    pub fn delete_dependency(&mut self, depends_on: Uuid) -> Result<(), anyhow::Error> {
+        self.dependencies.retain(|d| d.depends_on != depends_on);
+        Ok(())
     }
 }
 

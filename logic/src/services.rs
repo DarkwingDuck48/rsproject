@@ -4,4 +4,4 @@ mod task_service;
 
 pub use resource_service::ResourceService;
 pub use scheduler::Scheduler;
-pub use task_service::TaskService;
+pub use task_service::{TaskService, TaskUpdate};

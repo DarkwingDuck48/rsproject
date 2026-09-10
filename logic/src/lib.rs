@@ -11,4 +11,4 @@ pub use base_structures::{
     SingleProjectContainer, Task, TaskStatus, TimeWindow,
 };
 
-pub use services::{ResourceService, Scheduler, TaskService};
+pub use services::{ResourceService, Scheduler, TaskService, TaskUpdate};

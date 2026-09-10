@@ -1,15 +1,16 @@
 use chrono::{DateTime, Utc};
 use logic::{BasicGettersForStructures, Dependency, DependencyType, Task, TaskService, TaskStatus};
 use serde::{Deserialize, Serialize};
+
 use uuid::Uuid;
 
 use crate::state::AppState;
 
 #[derive(Serialize, Clone)]
 pub struct TaskDependencyInfo {
-    depends_on: Uuid,
-    dependency_type: DependencyType,
-    lag_days: Option<i64>,
+    pub depends_on: Uuid,
+    pub dependency_type: DependencyType,
+    pub lag_days: Option<i64>,
 }
 
 impl TaskDependencyInfo {

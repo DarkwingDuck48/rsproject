@@ -25,6 +25,8 @@ pub fn run() {
             commands::task::delete_task,
             commands::task::get_task_tree,
             commands::task::recalculate_critical_path,
+            commands::task::add_dependency,
+            commands::task::remove_dependency,
             commands::resources::add_resource,
             commands::resources::edit_resource,
             commands::resources::get_resources,

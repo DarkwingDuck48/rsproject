@@ -10,6 +10,14 @@ use anyhow::Result;
 use chrono::{DateTime, TimeDelta, Utc};
 use uuid::Uuid;
 
+pub struct TaskUpdate {
+    pub name: Option<String>,
+    pub start: Option<DateTime<Utc>>,
+    pub end: Option<DateTime<Utc>>,
+    pub parent_id: Option<Option<Uuid>>, // Some(None) — убрать родителя
+    pub status: Option<TaskStatus>,
+}
+
 pub struct TaskService<'a, C: ProjectContainer> {
     pub container: &'a mut C,
 }
@@ -197,12 +205,16 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         &mut self,
         project_id: Uuid,
         task_id: Uuid,
-        name: Option<String>,
-        start: Option<DateTime<Utc>>,
-        end: Option<DateTime<Utc>>,
-        parent_id: Option<Option<Uuid>>,
-        status: Option<TaskStatus>,
+        update: TaskUpdate,
     ) -> Result<()> {
+        let TaskUpdate {
+            name,
+            start,
+            end,
+            parent_id,
+            status,
+        } = update;
+
         let project = self
             .container
             .get_project_mut(&project_id)
@@ -391,7 +403,38 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             .get_mut(&task_id)
             .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
 
-        task.add_dependency(dependency);
+        task.add_dependency(dependency)?;
+
+        Ok(())
+    }
+
+    pub fn remove_dependency(
+        &mut self,
+        project_id: &Uuid,
+        task_id: &Uuid,
+        depends_on: Uuid,
+    ) -> Result<()> {
+        let project = self
+            .container
+            .get_project(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        // Проверяем существование обеих задач
+        if !project.tasks.contains_key(task_id) {
+            anyhow::bail!("Task with id {} not found", task_id);
+        }
+
+        let project = self
+            .container
+            .get_project_mut(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        let task = project
+            .tasks
+            .get_mut(task_id)
+            .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
+
+        task.delete_dependency(depends_on)?;
 
         Ok(())
     }
@@ -552,11 +595,13 @@ mod tests {
         task_service.update_task(
             project_id,
             task_id,
-            Some(new_name.clone()),
-            Some(new_start),
-            Some(new_end),
-            None,
-            Some(TaskStatus::Complete),
+            TaskUpdate {
+                name: Some(new_name.clone()),
+                start: Some(new_start),
+                end: Some(new_end),
+                parent_id: None,
+                status: Some(TaskStatus::Complete),
+            },
         )?;
 
         // Проверяем изменения
@@ -892,6 +937,124 @@ mod tests {
                 .to_string()
                 .contains("Project not found")
         );
+
+        Ok(())
+    }
+
+    // Дубликат зависимости от одной и той же задачи → ошибка
+    #[test]
+    fn test_add_dependency_duplicate() -> anyhow::Result<()> {
+        let (mut container, project_id, task1_id, task2_id) = setup_two_tasks();
+        let mut task_service = TaskService::new(&mut container);
+
+        task_service.add_dependency(
+            project_id,
+            task1_id,
+            task2_id,
+            DependencyType::Blocking,
+            Duration::zero().into(),
+        )?;
+
+        // Вторая зависимость от той же задачи, даже с другим типом/лагом, запрещена
+        let result = task_service.add_dependency(
+            project_id,
+            task1_id,
+            task2_id,
+            DependencyType::NonBlocking,
+            Duration::days(1).into(),
+        );
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Задача не может зависеть от одной и той же задачи")
+        );
+
+        // В списке осталась одна зависимость
+        let task1 = task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task1_id)
+            .unwrap();
+        assert_eq!(task1.get_dependencies().len(), 1);
+
+        Ok(())
+    }
+
+    // Удаление существующей зависимости: удаляется только она, остальные сохраняются
+    #[test]
+    fn test_remove_dependency_success() -> anyhow::Result<()> {
+        let (mut container, project_id, task1_id, task2_id) = setup_two_tasks();
+        let task3_id = {
+            let mut task_service = TaskService::new(&mut container);
+            let task3 = task_service.create_regular_task(
+                project_id,
+                "Task3".into(),
+                Utc.with_ymd_and_hms(2025, 2, 21, 0, 0, 0).unwrap(),
+                Utc.with_ymd_and_hms(2025, 2, 28, 0, 0, 0).unwrap(),
+                None,
+            )?;
+            *task3.get_id()
+        };
+
+        let mut task_service = TaskService::new(&mut container);
+        task_service.add_dependency(
+            project_id,
+            task1_id,
+            task2_id,
+            DependencyType::Blocking,
+            Duration::zero().into(),
+        )?;
+        task_service.add_dependency(
+            project_id,
+            task1_id,
+            task3_id,
+            DependencyType::NonBlocking,
+            Duration::days(1).into(),
+        )?;
+
+        task_service.remove_dependency(&project_id, &task1_id, task2_id)?;
+
+        let task1 = task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task1_id)
+            .unwrap();
+        let deps = task1.get_dependencies();
+        assert_eq!(deps.len(), 1);
+        assert_eq!(deps[0].depends_on, task3_id);
+
+        Ok(())
+    }
+
+    // Удаление несуществующей зависимости — идемпотентно, ничего не меняет
+    #[test]
+    fn test_remove_dependency_not_found() -> anyhow::Result<()> {
+        let (mut container, project_id, task1_id, task2_id) = setup_two_tasks();
+        let mut task_service = TaskService::new(&mut container);
+
+        task_service.add_dependency(
+            project_id,
+            task1_id,
+            task2_id,
+            DependencyType::Blocking,
+            Duration::zero().into(),
+        )?;
+
+        let fake_id = Uuid::new_v4();
+        task_service.remove_dependency(&project_id, &task1_id, fake_id)?;
+
+        // Список зависимостей не изменился
+        let task1 = task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task1_id)
+            .unwrap();
+        assert_eq!(task1.get_dependencies().len(), 1);
 
         Ok(())
     }
