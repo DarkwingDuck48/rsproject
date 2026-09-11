@@ -17,7 +17,12 @@ const DATE_FORMAT = "YYYY-MM-DD";
  * @param {Function} props.onClose    - Закрыть диалог: () => void.
  * @param {Function} props.onSaved    - Период добавлен: () => void.
  */
-export default function UnavailablePeriodDialog({ open, resource, onClose, onSaved }) {
+export default function UnavailablePeriodDialog({
+  open,
+  resource,
+  onClose,
+  onSaved,
+}) {
   const [saving, setSaving] = useState(false);
 
   async function handleFinish(values) {
@@ -28,8 +33,11 @@ export default function UnavailablePeriodDialog({ open, resource, onClose, onSav
       message.error("Укажите даты начала и окончания периода");
       return;
     }
-    if (start.isAfter(end)) {
-      message.error("Дата окончания не может быть раньше даты начала");
+    // TimeWindow::new требует start < end — период минимум 1 день
+    if (!start.isBefore(end)) {
+      message.error(
+        "Дата окончания должна быть позже даты начала (период минимум 1 день)",
+      );
       return;
     }
 
@@ -52,7 +60,12 @@ export default function UnavailablePeriodDialog({ open, resource, onClose, onSav
   }
 
   return (
-    <Modal open={open} title={`Период недоступности: ${resource?.name ?? ""}`} footer={null} destroyOnHidden>
+    <Modal
+      open={open}
+      title={`Период недоступности: ${resource?.name ?? ""}`}
+      footer={null}
+      destroyOnHidden
+    >
       <Form layout="vertical" onFinish={handleFinish}>
         <Form.Item
           name="exception_type"

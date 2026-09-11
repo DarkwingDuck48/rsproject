@@ -118,6 +118,55 @@ body,
     color: var(--app-text-secondary);
 }
 
+/* Список элементов вкладки в SidePanel (5.11–5.13). */
+.side-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    width: 100%;
+}
+
+.side-list__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--app-text-primary);
+    cursor: default;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.side-list__item:hover {
+    background: var(--app-bg-side);
+}
+
+.side-list__item--summary {
+    font-weight: 600;
+}
+
+.side-list__item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.side-list__item-sub {
+    color: var(--app-text-secondary);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.side-list__more {
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--app-text-secondary);
+}
+
 /* ─────────── CentralPanel ─────────── */
 .app-central-panel {
     grid-area: central;
@@ -157,6 +206,158 @@ body,
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GanttView (5.15)
+   ═══════════════════════════════════════════════════════════ */
+/* CSS-переменные диаграммы (наследуются всем дочерним элементам). */
+.gantt {
+    --gantt-bar: #1677ff; /* обычная задача */
+    --gantt-bar-summary: #a6b4c8; /* сводная (группирующая) */
+    --gantt-bar-critical: #ff4d4f; /* критический путь */
+    --gantt-text: rgba(0, 0, 0, 0.75);
+    --gantt-grid: #ececec;
+    --gantt-grid-strong: #d9d9d9;
+    --gantt-weekend: #f7f7f7;
+    --gantt-axis-bg: #ffffff;
+    --gantt-name-bg: #fafafa;
+    --gantt-name-bg-hover: #f0f0f0;
+    --gantt-axis-width: var(--gantt-chart-width);
+}
+
+/* Скролл-контейнер: обе оси прокручиваются, шапка и колонка имён «прилипают». */
+.gantt-scroll {
+    overflow: auto;
+    max-height: calc(100vh - var(--app-top-height) - 180px);
+    border: 1px solid var(--app-border);
+    border-radius: 6px;
+}
+
+/* Сетка Ганта:
+     ┌────────┬─────────┐
+     │ corner │  axis   │  ← sticky top
+     ├────────┼─────────┤
+     │ names  │  chart  │  ← names sticky left
+     └────────┴─────────┘
+   Имена задач и ось времени зафиксированы относительно скролла. */
+.gantt-grid {
+    display: grid;
+    grid-template-areas:
+        "corner axis"
+        "names chart";
+    grid-template-columns: var(--gantt-names-width) var(--gantt-chart-width);
+    grid-template-rows: var(--gantt-header-height) auto;
+    width: calc(var(--gantt-names-width) + var(--gantt-chart-width));
+}
+
+.gantt-corner {
+    grid-area: corner;
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    background: var(--gantt-axis-bg);
+    border-right: 1px solid var(--gantt-grid);
+    border-bottom: 1px solid var(--gantt-grid);
+}
+
+.gantt-axis {
+    grid-area: axis;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--gantt-axis-bg);
+    border-bottom: 1px solid var(--gantt-grid);
+    width: var(--gantt-axis-width);
+}
+
+.gantt-names {
+    grid-area: names;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    border-right: 1px solid var(--gantt-grid);
+}
+
+.gantt-name {
+    height: var(--gantt-row-height);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 12px;
+    background: var(--gantt-name-bg);
+    border-bottom: 1px solid var(--gantt-grid);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gantt-name:hover {
+    background: var(--gantt-name-bg-hover);
+}
+
+.gantt-name--summary {
+    font-weight: 600;
+    color: var(--app-text-primary);
+}
+
+.gantt-chart {
+    grid-area: chart;
+}
+
+/* ─── Полосы задач ─── */
+.gantt-bar--task rect {
+    fill: var(--gantt-bar);
+}
+
+.gantt-bar--summary rect {
+    fill: var(--gantt-bar-summary);
+}
+
+.gantt-bar--critical rect {
+    fill: var(--gantt-bar-critical);
+}
+
+/* Стрелки зависимостей. */
+.gantt-arrow {
+    stroke: var(--gantt-text);
+    stroke-width: 1.4;
+    fill: none;
+}
+
+/* ─── Легенда ─── */
+.gantt-legend {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--app-text-secondary);
+}
+
+.gantt-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gantt-legend__swatch {
+    width: 14px;
+    height: 10px;
+    display: inline-block;
+    border-radius: 2px;
+}
+
+.gantt-legend__swatch--task {
+    background: var(--gantt-bar);
+}
+
+.gantt-legend__swatch--summary {
+    background: var(--gantt-bar-summary);
+}
+
+.gantt-legend__swatch--critical {
+    background: var(--gantt-bar-critical);
 }
 
 /* ─────────── Адаптивность ─────────── */

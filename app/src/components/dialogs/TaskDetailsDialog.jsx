@@ -99,6 +99,23 @@ export default function TaskDetailsDialog({
   }, [open]);
 
   async function handleFinish(values) {
+    // У сводных задач дат нет — проверяем только у обычных
+    if (!task.is_summary) {
+      const start = dayjs(values.date_start);
+      const end = dayjs(values.date_end);
+      if (!start.isValid() || !end.isValid()) {
+        message.error("Укажите даты начала и окончания задачи");
+        return;
+      }
+      // Бэкенд (Task::new_regular) требует start < end — задача минимум 1 день
+      if (!start.isBefore(end)) {
+        message.error(
+          "Дата окончания должна быть позже даты начала (длительность минимум 1 день)",
+        );
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await editTask(task.id, {

@@ -1,7 +1,6 @@
-import { Button, Modal, Typography } from "antd";
+import { Button, Modal, Typography, message } from "antd";
 import { CloseOutlined, SaveOutlined } from "@ant-design/icons";
 import { closeProject, saveProject } from "../../lib/api";
-import { message } from "antd";
 
 /**
  * Диалог подтверждения закрытия проекта.
@@ -50,7 +49,11 @@ export default function CloseProjectDialog({ open, onClose, onClosed }) {
           <Button danger onClick={handleCloseWithoutSave}>
             Закрыть без сохранения
           </Button>
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAndClose}>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleSaveAndClose}
+          >
             Сохранить и закрыть
           </Button>
         </>

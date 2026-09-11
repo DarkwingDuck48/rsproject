@@ -101,7 +101,7 @@ impl TaskInfo {
         let task_service = TaskService::new(&mut *container);
         let task = task_service
             .get_task_by_id(&project_id, &task_id)
-            .ok_or(format!("Не найдена задача с ID {} ", task_id))?;
+            .ok_or(format!("Не найдена задача с ID {}", task_id))?;
         let task_cost = task_service
             .calculate_task_cost(&project_id, &task_id)
             .unwrap_or(0.0);

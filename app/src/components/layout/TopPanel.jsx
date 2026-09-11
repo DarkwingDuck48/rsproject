@@ -13,12 +13,10 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useState } from "react";
 import { TAB_ORDER, TABS } from "../../tabs";
 import { openProject, saveProject } from "../../lib/api";
+import { REPO_URL } from "../../lib/constants";
 import AboutDialog from "../dialogs/AboutDialog";
 import CloseProjectDialog from "../dialogs/CloseProjectDialog";
 import NewProjectDialog from "../dialogs/NewProjectDialog";
-
-/** Ссылка на репозиторий проекта (используется в меню «Помощь»). */
-const REPO_URL = "https://github.com/DarkwingDuck48/rsproject";
 
 /**
  * Верхняя панель приложения: меню «Файл»/«Помощь» и переключатель вкладок.

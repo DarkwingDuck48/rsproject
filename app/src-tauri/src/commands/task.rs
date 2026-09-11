@@ -189,6 +189,17 @@ pub fn recalculate_critical_path(
 }
 
 #[tauri::command]
+pub fn get_critical_path(
+    state: tauri::State<AppState>,
+    project_id: Option<Uuid>,
+) -> Result<Option<Vec<Uuid>>, String> {
+    // Только читаем общий стейт: возвращает None, пока критический путь
+    // не пересчитан, и после любой мутации данных (бэкенд сбрасывает его).
+    resolve_project_id(&state, project_id)?;
+    Ok(state.critical_path.lock().unwrap().clone())
+}
+
+#[tauri::command]
 pub fn add_dependency(
     state: tauri::State<AppState>,
     task_id: Uuid,

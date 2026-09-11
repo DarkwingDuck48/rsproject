@@ -13,6 +13,7 @@ import { FileAddOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { addTask, getTaskTree } from "../../lib/api";
+import { isNoProjectError } from "../../lib/errors";
 
 /** Формат дат для бэкенда (`%Y-%m-%d`). */
 const DATE_FORMAT = "YYYY-MM-DD";
@@ -54,7 +55,12 @@ export default function NewTaskDialog({ open, onClose, onCreated }) {
       setIsSummary(false);
       getTaskTree()
         .then(setTaskTree)
-        .catch(() => setTaskTree([]));
+        .catch((err) => {
+          setTaskTree([]);
+          if (!isNoProjectError(err)) {
+            message.error(`Не удалось загрузить задачи: ${err}`);
+          }
+        });
     }
   }, [open]);
 
@@ -81,8 +87,11 @@ export default function NewTaskDialog({ open, onClose, onCreated }) {
       message.error("Укажите даты начала и окончания задачи");
       return;
     }
-    if (start.isAfter(end)) {
-      message.error("Дата окончания не может быть раньше даты начала");
+    // Бэкенд (Task::new_regular) требует start < end — задача минимум 1 день
+    if (!start.isBefore(end)) {
+      message.error(
+        "Дата окончания должна быть позже даты начала (длительность минимум 1 день)",
+      );
       return;
     }
 

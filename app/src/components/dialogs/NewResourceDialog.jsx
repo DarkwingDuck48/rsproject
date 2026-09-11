@@ -1,4 +1,13 @@
-import { Button, Form, Input, InputNumber, Modal, Select, Space, message } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  message,
+} from "antd";
 import { FileAddOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { addResource } from "../../lib/api";
@@ -35,7 +44,9 @@ export default function NewResourceDialog({ open, onClose, onCreated }) {
         <Form.Item
           name="name"
           label="Название"
-          rules={[{ required: true, whitespace: true, message: "Введите название" }]}
+          rules={[
+            { required: true, whitespace: true, message: "Введите название" },
+          ]}
         >
           <Input placeholder="Название ресурса" />
         </Form.Item>
@@ -45,7 +56,7 @@ export default function NewResourceDialog({ open, onClose, onCreated }) {
           rules={[{ required: true, message: "Укажите ставку" }]}
         >
           <InputNumber
-            min={0}
+            min={0.01}
             precision={2}
             placeholder="Ставка"
             style={{ width: "100%" }}

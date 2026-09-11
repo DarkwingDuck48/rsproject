@@ -17,16 +17,12 @@ import {
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { deleteResource, getResources } from "../../lib/api";
+import { isNoProjectError } from "../../lib/errors";
+import { formatDate } from "../../lib/format";
 import { EXCEPTION_TYPE_LABELS, RATE_MEASURE_LABELS } from "../../lib/options";
 import EditResourceDialog from "../dialogs/EditResourceDialog";
 import NewResourceDialog from "../dialogs/NewResourceDialog";
 import UnavailablePeriodDialog from "../dialogs/UnavailablePeriodDialog";
-
-/** Форматирует дату RFC 3339 в DD.MM.YYYY. */
-function formatDate(iso) {
-  if (!iso) return "—";
-  return iso.slice(0, 10).split("-").reverse().join(".");
-}
 
 /**
  * Вкладка «Ресурсы»: таблица ресурсов с периодами недоступности
@@ -48,8 +44,11 @@ export default function ResourcesView({ dataVersion }) {
     setLoading(true);
     try {
       setResources(await getResources());
-    } catch {
+    } catch (err) {
       setResources([]);
+      if (!isNoProjectError(err)) {
+        message.error(`Не удалось загрузить ресурсы: ${err}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -101,7 +100,7 @@ export default function ResourcesView({ dataVersion }) {
           <Space wrap size={4}>
             {value.map((period) => (
               <Tag
-                key={`${period.period.date_start}-${period.period.date_end}`}
+                key={`${period.period.date_start}-${period.period.date_end}-${period.exception_type}`}
               >
                 {EXCEPTION_TYPE_LABELS[period.exception_type] ??
                   period.exception_type}

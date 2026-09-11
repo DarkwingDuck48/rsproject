@@ -199,6 +199,15 @@ export function recalculateCriticalPath() {
   return invoke("recalculate_critical_path", { projectId: null });
 }
 
+/**
+ * Возвращает уже посчитанный критический путь из общего стейта
+ * (null, если он ещё не считался или данные менялись после расчёта).
+ * @returns {Promise<?string[]>}
+ */
+export function getCriticalPath() {
+  return invoke("get_critical_path", { projectId: null });
+}
+
 // ═══════════════════════════════════════════════════════════
 // Ресурсы
 // ═══════════════════════════════════════════════════════════

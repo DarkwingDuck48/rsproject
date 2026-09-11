@@ -51,7 +51,7 @@
   - `src/state.rs` — `AppState` с `Mutex<SingleProjectContainer>`
   - `src/commands.rs` + `src/commands/` — Tauri-команды (`#[tauri::command]`):
     - `project.rs` — создание, открытие, сохранение, закрытие проекта
-    - `task.rs` — CRUD задач, зависимости, назначение ресурсов, расчёт критического пути
+    - `task.rs` — CRUD задач, зависимости, назначение ресурсов, расчёт критического пути, `get_critical_path` (чтение общего стейта)
     - `resources.rs` — CRUD ресурсов, периоды недоступности, проверка доступности
     - `utils.rs` — вспомогательные функции (`parse_date`, `resolve_project_id`)
   - `src/dto.rs` + `src/dto/` — DTO для фронтенда (сериализация из `logic`):
@@ -63,11 +63,11 @@
   - `App.jsx` — корневой компонент, стейт активной вкладки, CSS Grid-раскладка
   - `tabs.jsx` — реестр вкладок (единый источник истины для панелей)
   - `components/layout/` — TopPanel (меню Файл/Помощь + переключение вкладок), SidePanel (список элементов вкладки), CentralPanel (переключатель вьюх)
-  - `components/views/` — ProjectView (просмотр/редактирование проекта, 5.11), TasksView (дерево задач + CRUD, 5.12), ResourcesView (таблица ресурсов + периоды недоступности, 5.13), GanttView (каркас, в 5.15)
+  - `components/views/` — ProjectView (просмотр/редактирование проекта, 5.11), TasksView (дерево задач + CRUD, 5.12), ResourcesView (таблица ресурсов + периоды недоступности, 5.13), GanttView (SVG-диаграмма: полосы задач по дням, зависимости-стрелки, подсветка критического пути, тултипы, гориз. скролл, 5.15)
   - `components/dialogs/` — 9 диалогов (5.14): About, New/EditProject, CloseProject, NewTask/TaskDetails, New/EditResource, AssignResource, UnavailablePeriod + общие `ProjectFormFields`
   - `hooks/` — кастомные React-хуки (пока не используется)
   - `types/` — JSDoc-типы, документирующие структуры `logic`
-  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд: `api.js` (все команды) и `options.js` (лейблы enum'ов)
+  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд: `api.js` (все команды), `options.js` (лейблы enum'ов), `format.js` (даты/плюрализация), `constants.js` (версия, ссылка на репо), `errors.js` (различение «проект не выбран» от реальных ошибок)
 - `index.html` — точка входа WebView
 - `package.json` — npm-зависимости
 - `vite.config.js` — конфигурация Vite (сборщик фронтенда)

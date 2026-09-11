@@ -21,16 +21,12 @@ import {
   getTaskTree,
   recalculateCriticalPath,
 } from "../../lib/api";
+import { isNoProjectError } from "../../lib/errors";
+import { formatDate } from "../../lib/format";
 import { TASK_STATUS_LABELS } from "../../lib/options";
 import AssignResourceDialog from "../dialogs/AssignResourceDialog";
 import NewTaskDialog from "../dialogs/NewTaskDialog";
 import TaskDetailsDialog from "../dialogs/TaskDetailsDialog";
-
-/** Форматирует дату RFC 3339 в DD.MM.YYYY. */
-function formatDate(iso) {
-  if (!iso) return "—";
-  return iso.slice(0, 10).split("-").reverse().join(".");
-}
 
 /**
  * Преобразует дерево задач (TaskTreeNode[]) в записи таблицы:
@@ -68,9 +64,12 @@ export default function TasksView({ dataVersion }) {
       const taskTree = await getTaskTree();
       setTree(taskTree);
       setRows(toRows(taskTree));
-    } catch {
+    } catch (err) {
       setTree([]);
       setRows([]);
+      if (!isNoProjectError(err)) {
+        message.error(`Не удалось загрузить задачи: ${err}`);
+      }
     } finally {
       setLoading(false);
     }

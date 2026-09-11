@@ -1,45 +1,10 @@
-import {
-  Button,
-  Card,
-  Descriptions,
-  Empty,
-  Space,
-  Spin,
-  Typography,
-  message,
-} from "antd";
+import { Button, Card, Descriptions, Empty, Spin, Typography } from "antd";
 import { EditOutlined } from "@ant-design/icons";
 import { invoke } from "@tauri-apps/api/core";
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { isNoProjectError } from "../../lib/errors";
+import { formatDate, pluralDays } from "../../lib/format";
 import EditProjectDialog from "../dialogs/EditProjectDialog";
-
-/** Сообщения об ошибках, означающие «проект сейчас не выбран» (штатная ситуация). */
-const NO_PROJECT_ERRORS = ["Не выбран проект", "Проект не найден"];
-
-/**
- * Форматирует дату проекта (RFC 3339, напр. "2026-09-11T00:00:00Z")
- * в удобный для отображения вид "DD.MM.YYYY".
- * @param {string} iso - Дата из ProjectInfo.
- * @returns {string}
- */
-function formatDate(iso) {
-  return dayjs(iso).format("DD.MM.YYYY");
-}
-
-/**
- * Русские формы множественного числа для дней ("1 день", "2 дня", "5 дней").
- * @param {number} n - Количество дней (duration_days).
- * @returns {string}
- */
-function pluralDays(n) {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return `${n} дней`;
-  if (mod10 === 1) return `${n} день`;
-  if (mod10 >= 2 && mod10 <= 4) return `${n} дня`;
-  return `${n} дней`;
-}
 
 /**
  * Вкладка «Проект»: просмотр информации о проекте и редактирование
@@ -86,7 +51,7 @@ export default function ProjectView({ dataVersion }) {
 
   /** Пустое состояние: проекта нет или загрузка не удалась. */
   if (!project) {
-    const noProject = !error || NO_PROJECT_ERRORS.includes(error);
+    const noProject = !error || isNoProjectError(error);
     return (
       <section className="view">
         <Typography.Title level={3}>Проект</Typography.Title>

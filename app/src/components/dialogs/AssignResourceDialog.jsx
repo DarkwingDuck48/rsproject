@@ -1,8 +1,19 @@
-import { Button, DatePicker, Form, InputNumber, Modal, Select, Space, Typography, message } from "antd";
+import {
+  Button,
+  DatePicker,
+  Form,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Typography,
+  message,
+} from "antd";
 import { TeamOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { assignResource, getResources } from "../../lib/api";
+import { isNoProjectError } from "../../lib/errors";
 
 /** Формат дат для бэкенда. */
 const DATE_FORMAT = "YYYY-MM-DD";
@@ -28,26 +39,44 @@ export default function AssignResourceDialog({ open, task, onClose, onSaved }) {
     if (open) {
       getResources()
         .then(setResources)
-        .catch(() => setResources([]));
+        .catch((err) => {
+          setResources([]);
+          if (!isNoProjectError(err)) {
+            message.error(`Не удалось загрузить ресурсы: ${err}`);
+          }
+        });
     }
   }, [open]);
 
   async function handleFinish(values) {
-    const dateStart = values.date_start ? dayjs(values.date_start).format(DATE_FORMAT) : null;
-    const dateEnd = values.date_end ? dayjs(values.date_end).format(DATE_FORMAT) : null;
+    const dateStart = values.date_start
+      ? dayjs(values.date_start).format(DATE_FORMAT)
+      : null;
+    const dateEnd = values.date_end
+      ? dayjs(values.date_end).format(DATE_FORMAT)
+      : null;
 
     if ((dateStart === null) !== (dateEnd === null)) {
       message.error("Укажите обе даты окна либо ни одной");
       return;
     }
-    if (dateStart && dateEnd && dayjs(dateStart).isAfter(dayjs(dateEnd))) {
-      message.error("Дата окончания окна не может быть раньше даты начала");
+    if (dateStart && dateEnd && !dayjs(dateStart).isBefore(dayjs(dateEnd))) {
+      // TimeWindow::new требует start < end — окно минимум 1 день
+      message.error(
+        "Дата окончания окна должна быть позже даты начала (окно минимум 1 день)",
+      );
       return;
     }
 
     setSaving(true);
     try {
-      await assignResource(task.id, values.resource_id, values.engagement, dateStart, dateEnd);
+      await assignResource(
+        task.id,
+        values.resource_id,
+        values.engagement,
+        dateStart,
+        dateEnd,
+      );
       message.success("Ресурс назначен");
       onClose();
       onSaved();
@@ -59,8 +88,17 @@ export default function AssignResourceDialog({ open, task, onClose, onSaved }) {
   }
 
   return (
-    <Modal open={open} title={`Назначить ресурс: ${task?.name ?? ""}`} footer={null} destroyOnHidden>
-      <Form layout="vertical" initialValues={{ engagement: 1 }} onFinish={handleFinish}>
+    <Modal
+      open={open}
+      title={`Назначить ресурс: ${task?.name ?? ""}`}
+      footer={null}
+      destroyOnHidden
+    >
+      <Form
+        layout="vertical"
+        initialValues={{ engagement: 1 }}
+        onFinish={handleFinish}
+      >
         <Form.Item
           name="resource_id"
           label="Ресурс"
@@ -89,8 +127,8 @@ export default function AssignResourceDialog({ open, task, onClose, onSaved }) {
           />
         </Form.Item>
         <Typography.Paragraph type="secondary">
-          Временное окно назначения (необязательно): если не указано,
-          ресурс назначается на всю длительность задачи.
+          Временное окно назначения (необязательно): если не указано, ресурс
+          назначается на всю длительность задачи.
         </Typography.Paragraph>
         <Form.Item name="date_start" label="Начало окна">
           <DatePicker format={DATE_FORMAT} style={{ width: "100%" }} />

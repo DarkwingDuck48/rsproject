@@ -1,12 +1,7 @@
 import { Button, Modal, Space, Typography } from "antd";
 import { GithubOutlined } from "@ant-design/icons";
 import { openUrl } from "@tauri-apps/plugin-opener";
-
-/** Ссылка на репозиторий проекта. */
-const REPO_URL = "https://github.com/DarkwingDuck48/rsproject";
-
-/** Текущая версия приложения (SemVer). */
-const APP_VERSION = "0.1.1";
+import { APP_VERSION, REPO_URL } from "../../lib/constants";
 
 /**
  * Диалог «О программе»: версия и ссылка на репозиторий.
