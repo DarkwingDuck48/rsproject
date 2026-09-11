@@ -9,7 +9,7 @@
 
 ## Структура проекта
 - Cargo workspace из двух крейтов: `app` (Tauri) и `logic`
-- `./app` — десктоп-приложение на Tauri v2 + React + JavaScript
+- `./app` — десктоп-приложение на Tauri v2 + React 19 + JavaScript
   - `./src-tauri/` — Rust-бекенд (Tauri commands, state)
   - `./src/` — React/JS фронтенд (Vite)
 - `./app_egui_old/` — старый EGui-код (референс, будет удалён в задаче 5.19)
@@ -17,9 +17,10 @@
 
 ## Технический стек
 - Rust edition 2024
-- GUI: Tauri v2 + React 18 + JavaScript + Vite
-  - Tauri-плагины: `dialog` (файловые диалоги), `shell` (внешние ссылки)
-  - Стилизация: CSS Modules + CSS Variables (темизация)
+- GUI: Tauri v2 + React 19 + JavaScript + Vite
+  - UI-библиотека: Ant Design v6 (`antd` + `@ant-design/icons`)
+  - Tauri-плагины: `opener` (внешние ссылки), `dialog` (файловые диалоги), `shell`
+  - Стилизация: CSS Grid + CSS Variables (темизация; `antd` использует `--ant-*`)
 - Сериализация: serde + serde_json
 - Дата/время: chrono 0.4
 - Идентификаторы: uuid v4
@@ -55,18 +56,19 @@
     - `project.rs` / `task.rs` / `resources.rs`
   - `tauri.conf.json` — конфигурация окна, бандла, идентификатор
   - `capabilities/default.json` — разрешения плагинов
-- `src/` — React/TS фронтенд:
-  - `main.tsx` — рендер React-приложения
-  - `App.tsx` — корневой компонент, стейт вкладок
-  - `components/layout/` — TopPanel, SidePanel, CentralPanel
-  - `components/views/` — ProjectView, TasksView, ResourcesView, GanttView
-  - `components/dialogs/` — 9 диалогов (About, NewProject, EditProject, CloseProject, NewTask, TaskDetails, NewResource, AssignResource, UnavailablePeriod)
+- `src/` — React/JS фронтенд (`.jsx`):
+  - `main.jsx` — рендер React-приложения, импорт `antd/dist/reset.css`
+  - `App.jsx` — корневой компонент, стейт активной вкладки, CSS Grid-раскладка
+  - `tabs.jsx` — реестр вкладок (единый источник истины для панелей)
+  - `components/layout/` — TopPanel (меню Файл/Помощь + переключение вкладок), SidePanel (список элементов вкладки), CentralPanel (переключатель вьюх)
+  - `components/views/` — ProjectView, TasksView, ResourcesView, GanttView (каркасы, наполняются в 5.11–5.15)
+  - `components/dialogs/` — 9 диалогов (остаётся из плана, реализуется в 5.14)
   - `hooks/` — кастомные React-хуки
   - `types/` — JSDoc-типы, документирующие структуры `logic`
-  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд
+  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд (в планах)
 - `index.html` — точка входа WebView
 - `package.json` — npm-зависимости
-- `vite.config.ts` — конфигурация Vite (сборщик фронтенда)
+- `vite.config.js` — конфигурация Vite (сборщик фронтенда)
 - Бинарник: `rsproject` (app/src-tauri/src/main.rs)
 
 ## Реализованные возможности
@@ -90,7 +92,8 @@ cargo test                  # запуск всех тестов (логика: 
 cargo fmt                   # форматирование кода
 cargo clippy                # линтер
 cd app && npm run dev       # запуск Vite dev-сервера (фронтенд)
-cargo tauri dev             # запуск полного приложения (из app/src-tauri/)
+npm run tauri dev           # запуск полного приложения (из app/; локальный CLI v2 из devDependencies)
+# cargo tauri dev           # не использовать: глобальный CLI может быть v1 и не читать tauri.conf.json v2
 cargo tauri build           # production-сборка бандла
 ```
 Бинарник после сборки: `./target/release/rsproject`

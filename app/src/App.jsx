@@ -1,49 +1,35 @@
+import { ConfigProvider } from "antd";
+import { theme } from "antd";
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import CentralPanel from "./components/layout/CentralPanel";
+import SidePanel from "./components/layout/SidePanel";
+import TopPanel from "./components/layout/TopPanel";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+/** Вкладка приложения, активная по умолчанию. */
+const DEFAULT_TAB = "project";
 
-  async function greet() {
-    setGreetMsg(await invoke("greet", { name }));
-  }
+/**
+ * Тема antd. До задачи 5.16 явно фиксируем светлую —
+ * с переключателем темы будем менять этот алгоритм.
+ */
+const APP_THEME = { algorithm: theme.defaultAlgorithm };
+
+/**
+ * Корневой компонент приложения.
+ * Хранит состояние активной вкладки (React state) и собирает layout из трёх панелей.
+ */
+function App() {
+  const [activeTab, setActiveTab] = useState(DEFAULT_TAB);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <ConfigProvider theme={APP_THEME}>
+      <div className="app">
+        <TopPanel activeTab={activeTab} onTabChange={setActiveTab} />
+        <SidePanel activeTab={activeTab} />
+        <CentralPanel activeTab={activeTab} />
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    </ConfigProvider>
   );
 }
 

@@ -814,6 +814,107 @@ mod tests {
 
         Ok(())
     }
+
+    // 5. Удаление назначения: деаллокация в пуле + очистка у задачи.
+    #[test]
+    fn test_remove_allocation_success() -> anyhow::Result<()> {
+        let (mut container, project_id, task_id, _, _) = setup_task();
+        let resource_id = setup_resource(&mut container);
+
+        let allocation_id = {
+            let mut task_service = TaskService::new(&mut container);
+            let allocation_id =
+                task_service.allocate_resource(project_id, task_id, resource_id, 0.5, None)?;
+
+            // Удаляем назначение
+            task_service.remove_allocation(&project_id, &task_id, allocation_id)?;
+
+            // У задачи назначения больше нет
+            let task = task_service
+                .get_project(&project_id)
+                .unwrap()
+                .tasks
+                .get(&task_id)
+                .unwrap();
+            assert!(!task.is_resource_assigned(&allocation_id));
+
+            allocation_id
+        };
+
+        // В пуле аллокации больше нет
+        assert!(
+            container
+                .resource_pool()
+                .get_allocation(&allocation_id)
+                .is_none()
+        );
+
+        // Ресурс снова свободен
+        let resource_service = ResourceService::new(&mut container);
+        assert_eq!(resource_service.get_resource_utilization(resource_id), 0.0);
+
+        Ok(())
+    }
+
+    // 6. Удаление назначения у несуществующей задачи — ошибка, ничего не трогаем.
+    #[test]
+    fn test_remove_allocation_task_not_found() -> anyhow::Result<()> {
+        let (mut container, project_id, task_id, _, _) = setup_task();
+        let resource_id = setup_resource(&mut container);
+
+        let (allocation_id, result) = {
+            let mut task_service = TaskService::new(&mut container);
+            let allocation_id =
+                task_service.allocate_resource(project_id, task_id, resource_id, 0.5, None)?;
+            let fake_task = Uuid::new_v4();
+            let result = task_service.remove_allocation(&project_id, &fake_task, allocation_id);
+            (allocation_id, result)
+        };
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+
+        // Аллокация осталась в пуле
+        assert!(
+            container
+                .resource_pool()
+                .get_allocation(&allocation_id)
+                .is_some()
+        );
+        // Задача не тронута
+        let task = container
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task_id)
+            .unwrap();
+        assert!(task.is_resource_assigned(&allocation_id));
+
+        Ok(())
+    }
+
+    // 7. Транзакционность: аллокации нет в пуле → ошибка, задача не мутируется.
+    #[test]
+    fn test_remove_allocation_not_in_pool() -> anyhow::Result<()> {
+        let (mut container, project_id, task_id, _, _) = setup_task();
+        let mut task_service = TaskService::new(&mut container);
+
+        let fake_allocation = Uuid::new_v4();
+        let result = task_service.remove_allocation(&project_id, &task_id, fake_allocation);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+
+        // Список назначений у задачи не изменился
+        let task = task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task_id)
+            .unwrap();
+        assert!(task.get_resource_allocations().is_empty());
+
+        Ok(())
+    }
     #[test]
     fn test_create_task() {
         let mut container = SingleProjectContainer::new();
