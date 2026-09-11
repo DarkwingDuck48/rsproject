@@ -19,8 +19,10 @@
 - Rust edition 2024
 - GUI: Tauri v2 + React 19 + JavaScript + Vite
   - UI-библиотека: Ant Design v6 (`antd` + `@ant-design/icons`)
+  - Даты: `dayjs` (античный тип `DatePicker` в antd v6 — dayjs-объекты)
   - Tauri-плагины: `opener` (внешние ссылки), `dialog` (файловые диалоги), `shell`
   - Стилизация: CSS Grid + CSS Variables (темизация; `antd` использует `--ant-*`)
+  - Имена аргументов `invoke()`: верхнеуровневые ключи — в `camelCase` (макрос `#[tauri::command]` конвертирует snake_case-параметры; напр. `date_start` → `dateStart`), а поля вложенных DTO — snake_case по именам Rust-структур (serde)
 - Сериализация: serde + serde_json
 - Дата/время: chrono 0.4
 - Идентификаторы: uuid v4
@@ -61,22 +63,23 @@
   - `App.jsx` — корневой компонент, стейт активной вкладки, CSS Grid-раскладка
   - `tabs.jsx` — реестр вкладок (единый источник истины для панелей)
   - `components/layout/` — TopPanel (меню Файл/Помощь + переключение вкладок), SidePanel (список элементов вкладки), CentralPanel (переключатель вьюх)
-  - `components/views/` — ProjectView, TasksView, ResourcesView, GanttView (каркасы, наполняются в 5.11–5.15)
-  - `components/dialogs/` — 9 диалогов (остаётся из плана, реализуется в 5.14)
-  - `hooks/` — кастомные React-хуки
+  - `components/views/` — ProjectView (просмотр/редактирование проекта, 5.11), TasksView (дерево задач + CRUD, 5.12), ResourcesView (таблица ресурсов + периоды недоступности, 5.13), GanttView (каркас, в 5.15)
+  - `components/dialogs/` — 9 диалогов (5.14): About, New/EditProject, CloseProject, NewTask/TaskDetails, New/EditResource, AssignResource, UnavailablePeriod + общие `ProjectFormFields`
+  - `hooks/` — кастомные React-хуки (пока не используется)
   - `types/` — JSDoc-типы, документирующие структуры `logic`
-  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд (в планах)
+  - `lib/` — обёртки над `invoke()` для вызова Tauri-команд: `api.js` (все команды) и `options.js` (лейблы enum'ов)
 - `index.html` — точка входа WebView
 - `package.json` — npm-зависимости
 - `vite.config.js` — конфигурация Vite (сборщик фронтенда)
 - Бинарник: `rsproject` (app/src-tauri/src/main.rs)
 
 ## Реализованные возможности
-- Создание/редактирование проектов, задач и ресурсов
+- Создание/редактирование проектов, задач и ресурсов (через UI: меню «Файл», вкладки «Задачи»/«Ресурсы»)
 - Назначение ресурсов с проверкой доступности
+- Зависимости задач (добавление/удаление в TaskDetailsDialog)
 - Иерархия задач (групповые задачи)
 - Расчёт критического пути
-- Диаграмма Ганта с подсветкой критического пути
+- Диаграмма Ганта с подсветкой критического пути (в 5.15)
 - Сохранение/загрузка проекта в JSON
 
 ## В планах

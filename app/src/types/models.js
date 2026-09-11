@@ -100,6 +100,83 @@
  */
 
 /**
+ * Информация о проекте для вкладки «Проект» (DTO `ProjectInfo` из `commands/dto.rs`).
+ * Возвращается командой `get_project_info`.
+ * @typedef  {Object}       ProjectInfo
+ * @property {string}       id            - UUID проекта
+ * @property {string}       name          - Название
+ * @property {string}       description   - Описание
+ * @property {string}       date_start    - Дата начала (RFC 3339, напр. "2026-09-11T00:00:00Z")
+ * @property {string}       date_end      - Дата окончания (RFC 3339)
+ * @property {number}       duration_days - Длительность в днях
+ */
+
+/**
+ * Информация о задаче (DTO `TaskInfo` из `dto/task.rs`).
+ * Возвращается командами `get_tasks` / `get_task_tree`.
+ * @typedef  {Object}       TaskInfo
+ * @property {string}       id               - UUID задачи
+ * @property {string}       name             - Название
+ * @property {string}       date_start       - Дата начала (RFC 3339)
+ * @property {string}       date_end         - Дата окончания (RFC 3339)
+ * @property {number}       duration_days    - Длительность в днях
+ * @property {TaskStatus}   status           - Статус
+ * @property {boolean}      is_summary       - Сводная (группирующая) задача
+ * @property {?string}      parent_id        - UUID родительской задачи (null для корневых)
+ * @property {number}       cost             - Стоимость (по назначенным ресурсам)
+ * @property {TaskDependencyInfo[]} dependencies - Зависимости (предшественники)
+ * @property {number}       allocations_count - Количество назначенных ресурсов
+ */
+
+/**
+ * Узел дерева задач (DTO `TaskTreeNode`).
+ * @typedef  {Object}      TaskTreeNode
+ * @property {TaskInfo}          task     - Задача
+ * @property {TaskTreeNode[]}    children - Дочерние задачи
+ */
+
+/**
+ * Информация о зависимости задачи (DTO `TaskDependencyInfo`).
+ * @typedef  {Object}        TaskDependencyInfo
+ * @property {string}        depends_on      - UUID задачи-предшественника
+ * @property {DependencyType} dependency_type - Тип зависимости
+ * @property {?number}       lag_days        - Лаг в днях (null если отсутствует)
+ */
+
+/**
+ * Назначение ресурса на задачу (DTO `TaskAllocationInfo`).
+ * @typedef  {Object}    TaskAllocationInfo
+ * @property {string}    allocation_id   - UUID аллокации
+ * @property {string}    resource_id     - UUID ресурса
+ * @property {number}    engagement_rate - Доля занятости 0.0–1.0
+ * @property {TimeWindow} time_window     - Временное окно занятости
+ */
+
+/**
+ * Детальная информация о задаче (DTO `TaskDetailInfo`).
+ * @typedef  {Object}           TaskDetailInfo
+ * @property {TaskInfo}              task        - Задача
+ * @property {TaskAllocationInfo[]}  allocations - Назначенные ресурсы
+ */
+
+/**
+ * Информация о периоде недоступности ресурса (DTO `ExceptionPeriodInfo`).
+ * @typedef  {Object}        ExceptionPeriodInfo
+ * @property {TimeWindow}    period         - Период (RFC 3339 даты)
+ * @property {ExceptionType} exception_type - Причина
+ */
+
+/**
+ * Информация о ресурсе (DTO `ResourceInfo` из `dto/resources.rs`).
+ * @typedef  {Object}                  ResourceInfo
+ * @property {string}                  id                  - UUID ресурса
+ * @property {string}                  name                - Название
+ * @property {number}                  rate                - Ставка
+ * @property {RateMeasure}             rate_measure        - Мера ставки
+ * @property {ExceptionPeriodInfo[]}   unavailable_periods - Периоды недоступности
+ */
+
+/**
  * Задача.
  * @typedef  {Object}       Task
  * @property {string}       id                   - UUID задачи

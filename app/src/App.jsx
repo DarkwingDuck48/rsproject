@@ -17,17 +17,31 @@ const APP_THEME = { algorithm: theme.defaultAlgorithm };
 
 /**
  * Корневой компонент приложения.
- * Хранит состояние активной вкладки (React state) и собирает layout из трёх панелей.
+ *
+ * Хранит состояние активной вкладки и счётчик изменений данных:
+ * после любой мутации (создание/редактирование/закрытие проекта и т.п.)
+ * `dataVersion` инкрементируется, благодаря чему открытые вкладки
+ * перезагружают свои данные через useEffect({}, [dataVersion]).
  */
 function App() {
   const [activeTab, setActiveTab] = useState(DEFAULT_TAB);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  /** Уведомить панели о том, что данные изменились (нужен перезапрос). */
+  function onDataChange() {
+    setDataVersion((version) => version + 1);
+  }
 
   return (
     <ConfigProvider theme={APP_THEME}>
       <div className="app">
-        <TopPanel activeTab={activeTab} onTabChange={setActiveTab} />
-        <SidePanel activeTab={activeTab} />
-        <CentralPanel activeTab={activeTab} />
+        <TopPanel
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onDataChange={onDataChange}
+        />
+        <SidePanel activeTab={activeTab} dataVersion={dataVersion} />
+        <CentralPanel activeTab={activeTab} dataVersion={dataVersion} />
       </div>
     </ConfigProvider>
   );
