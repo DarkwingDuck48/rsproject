@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
-use logic::{BasicGettersForStructures, Dependency, DependencyType, Task, TaskService, TaskStatus};
+use logic::{
+    BasicGettersForStructures, Dependency, DependencyType, ResourceAllocation, Task, TaskService,
+    TaskStatus, TimeWindow,
+};
 use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
@@ -19,6 +22,25 @@ impl TaskDependencyInfo {
             depends_on: dependency.depends_on,
             dependency_type: dependency.dependency_type,
             lag_days: dependency.lag.map(|td| td.num_days()),
+        }
+    }
+}
+
+#[derive(Serialize, Clone)]
+pub struct TaskAllocationInfo {
+    pub allocation_id: Uuid,
+    pub resource_id: Uuid,
+    pub engagement_rate: f64,
+    pub time_window: TimeWindow,
+}
+
+impl TaskAllocationInfo {
+    pub fn from_allocation(allocation: &ResourceAllocation) -> Self {
+        Self {
+            allocation_id: allocation.get_id(),
+            resource_id: *allocation.get_resource_id(),
+            engagement_rate: *allocation.get_engagement_rate(),
+            time_window: *allocation.get_time_window(),
         }
     }
 }
@@ -46,6 +68,7 @@ pub struct TaskInfo {
     parent_id: Option<Uuid>,
     cost: f64,
     dependencies: Vec<TaskDependencyInfo>,
+    allocations_count: usize,
 }
 
 impl TaskInfo {
@@ -65,6 +88,7 @@ impl TaskInfo {
                 .iter()
                 .map(|dep| TaskDependencyInfo::from_dependency(*dep))
                 .collect(),
+            allocations_count: task.get_resource_allocations().len(),
         }
     }
 
@@ -84,6 +108,14 @@ impl TaskInfo {
         Ok(Self::from_task(task, task_cost))
     }
 }
+
+#[derive(Serialize, Clone)]
+pub struct TaskDetailInfo {
+    #[serde(flatten)]
+    pub task: TaskInfo,
+    pub allocations: Vec<TaskAllocationInfo>,
+}
+
 #[derive(Serialize, Clone)]
 pub struct TaskTreeNode {
     pub task: TaskInfo,

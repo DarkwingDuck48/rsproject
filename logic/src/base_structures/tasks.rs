@@ -111,6 +111,10 @@ impl Task {
         &self.resource_allocations
     }
 
+    pub fn delete_resource_allocation(&mut self, allocation_id: Uuid) {
+        self.resource_allocations.retain(|a| a != &allocation_id);
+    }
+
     pub fn add_dependency(&mut self, dependency: Dependency) -> Result<(), anyhow::Error> {
         if self
             .dependencies

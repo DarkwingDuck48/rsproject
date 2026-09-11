@@ -362,6 +362,39 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         Ok(allocation_id)
     }
 
+    pub fn remove_allocation(
+        &mut self,
+        project_id: &Uuid,
+        task_id: &Uuid,
+        allocation_id: Uuid,
+    ) -> Result<()> {
+        let project = self
+            .container
+            .get_project(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        // Проверяем существование обеих задач
+        if !project.tasks.contains_key(task_id) {
+            anyhow::bail!("Task with id {} not found", task_id);
+        }
+        self.container
+            .resource_pool_mut()
+            .deallocate(allocation_id)?;
+        let project = self
+            .container
+            .get_project_mut(project_id)
+            .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
+
+        let task = project
+            .tasks
+            .get_mut(task_id)
+            .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
+
+        task.delete_resource_allocation(allocation_id);
+
+        Ok(())
+    }
+
     // Добавить зависимость задач
     pub fn add_dependency(
         &mut self,

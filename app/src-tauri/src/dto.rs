@@ -9,4 +9,4 @@ mod task;
 
 pub use project::ProjectInfo;
 pub use resources::{ResourceInfo, ResourceUpdateDto};
-pub use task::{TaskInfo, TaskTreeNode, TaskUpdateDto};
+pub use task::{TaskAllocationInfo, TaskDetailInfo, TaskInfo, TaskTreeNode, TaskUpdateDto};

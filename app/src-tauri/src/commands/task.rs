@@ -1,12 +1,12 @@
 use chrono::TimeDelta;
 use logic::{
-    BasicGettersForStructures, DependencyType, Scheduler, SingleProjectContainer, Task,
-    TaskService, TaskUpdate,
+    BasicGettersForStructures, DependencyType, ProjectContainer, Scheduler, SingleProjectContainer,
+    Task, TaskService, TaskUpdate, TimeWindow,
 };
 use uuid::Uuid;
 
 use crate::commands::utils::{parse_date, resolve_project_id};
-use crate::dto::{TaskInfo, TaskTreeNode, TaskUpdateDto};
+use crate::dto::{TaskAllocationInfo, TaskDetailInfo, TaskInfo, TaskTreeNode, TaskUpdateDto};
 use crate::state::AppState;
 
 impl TryFrom<TaskUpdateDto> for TaskUpdate {
@@ -54,9 +54,33 @@ pub fn add_task(
 }
 
 #[tauri::command]
-pub fn get_task(state: tauri::State<AppState>, task_id: Uuid) -> Result<TaskInfo, String> {
+pub fn get_task(state: tauri::State<AppState>, task_id: Uuid) -> Result<TaskDetailInfo, String> {
     let project_id = resolve_project_id(&state, None)?;
-    TaskInfo::from_state(state, project_id, task_id)
+    let mut container = state.container();
+    let task_service = TaskService::new(&mut *container);
+
+    let task = task_service
+        .get_task_by_id(&project_id, &task_id)
+        .ok_or(format!("Не найдена задача с ID {} ", task_id))?;
+    let cost = task_service
+        .calculate_task_cost(&project_id, &task_id)
+        .unwrap_or(0.0);
+
+    // Резолвим аллокации: ID -> объект -> DTO
+    let pool = task_service.container.resource_pool();
+    let allocations = task
+        .get_resource_allocations()
+        .iter()
+        .filter_map(|id| {
+            pool.get_allocation(id)
+                .map(TaskAllocationInfo::from_allocation)
+        })
+        .collect();
+
+    Ok(TaskDetailInfo {
+        task: TaskInfo::from_task(task, cost),
+        allocations,
+    })
 }
 
 #[tauri::command]
@@ -202,5 +226,56 @@ pub fn remove_dependency(
         .remove_dependency(&project_id, &task_id, depends_on)
         .map_err(|e| e.to_string())?;
     *state.critical_path.lock().unwrap() = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn assign_resource(
+    state: tauri::State<AppState>,
+    task_id: Uuid,
+    resource_id: Uuid,
+    engagement: f64,
+    date_start: Option<String>,
+    date_end: Option<String>,
+) -> Result<(), String> {
+    let project_id = resolve_project_id(&state, None)?;
+
+    let allocation_window = match (date_start, date_end) {
+        (Some(start), Some(end)) => {
+            let s = parse_date(&start)?;
+            let e = parse_date(&end)?;
+            Some(TimeWindow::new(s, e).map_err(|x| x.to_string())?)
+        }
+        (None, None) => None,
+        _ => return Err("Укажите обе даты окна либо ни одной".to_string()),
+    };
+
+    let mut container = state.container();
+    let mut task_service = TaskService::new(&mut *container);
+
+    task_service
+        .allocate_resource(
+            project_id,
+            task_id,
+            resource_id,
+            engagement,
+            allocation_window,
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_assignment(
+    state: tauri::State<AppState>,
+    task_id: Uuid,
+    allocation_id: Uuid,
+) -> Result<(), String> {
+    let project_id = resolve_project_id(&state, None)?;
+    let mut container = state.container();
+    let mut task_service = TaskService::new(&mut *container);
+    task_service
+        .remove_allocation(&project_id, &task_id, allocation_id)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }

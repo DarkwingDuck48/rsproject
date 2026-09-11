@@ -27,6 +27,8 @@ pub fn run() {
             commands::task::recalculate_critical_path,
             commands::task::add_dependency,
             commands::task::remove_dependency,
+            commands::task::assign_resource,
+            commands::task::remove_assignment,
             commands::resources::add_resource,
             commands::resources::edit_resource,
             commands::resources::get_resources,
