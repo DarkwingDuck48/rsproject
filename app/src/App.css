@@ -1,7 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
-   Тема (CSS Variables).
-   Полноценная темизация (светлая/тёмная) — задача 5.16.
-   Здесь заложены базовые переменные, на которых будет строиться тема.
+   Тема (CSS Variables) — задача 5.16.
+
+   Светлая тема — значения по умолчанию в `:root`.
+   Тёмная тема — переопределения в `.app[data-theme="dark"]`
+   (атрибут выставляется в App.jsx). Переменные каскадируются
+   всем дочерним элементам, поэтому компоненты меняют цвет
+   мгновенно при переключении.
    ═══════════════════════════════════════════════════════════ */
 :root {
     --app-bg: #f5f5f5;
@@ -14,6 +18,20 @@
 
     --app-top-height: 56px;
     --app-side-width: 240px;
+    --app-status-height: 30px;
+}
+
+.app[data-theme="dark"] {
+    --app-bg: #141414;
+    --app-bg-panel: #1f1f1f;
+    --app-bg-side: #1a1a1a;
+    --app-text-primary: rgba(255, 255, 255, 0.88);
+    --app-text-secondary: rgba(255, 255, 255, 0.55);
+    --app-border: #3d3d3d;
+    --app-accent: #4096ff;
+
+    /* Нативные контролы (скроллбары, календарь) тоже тёмные. */
+    color-scheme: dark;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -35,18 +53,20 @@ body,
    Layout: адаптивная сетка на CSS Grid.
    ┌────────── top ──────────┐
    │  side   │   central     │
-   └─────────────────────────┘
+   ├────────── bottom ───────┤
    ═══════════════════════════════════════════════════════════ */
 .app {
     display: grid;
     grid-template-areas:
         "top top"
-        "side central";
-    grid-template-rows: var(--app-top-height) 1fr;
+        "side central"
+        "bottom bottom";
+    grid-template-rows: var(--app-top-height) 1fr var(--app-status-height);
     grid-template-columns: var(--app-side-width) 1fr;
     height: 100vh;
     background: var(--app-bg);
     color: var(--app-text-primary);
+    color-scheme: light;
 }
 
 /* ─────────── TopPanel ─────────── */
@@ -81,6 +101,10 @@ body,
     flex: 1;
     min-width: 0;
     border-bottom: none;
+}
+
+.app-top-panel__theme-toggle {
+    color: var(--app-text-secondary);
 }
 
 /* ─────────── SidePanel ─────────── */
@@ -193,6 +217,35 @@ body,
     padding: 32px 0;
 }
 
+/* ─────────── StatusBar (5.18) ─────────── */
+.app-status-bar {
+    grid-area: bottom;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    background: var(--app-bg-side);
+    border-top: 1px solid var(--app-border);
+    font-size: 12px;
+    color: var(--app-text-secondary);
+}
+
+.app-status-bar__stats {
+    min-width: 0;
+}
+
+.app-status-bar__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--app-text-secondary);
+    white-space: nowrap;
+}
+
+.app-status-bar__spacer {
+    flex: 1;
+}
+
 /* Строка зависимости в TaskDetailsDialog. */
 .task-dependency-row {
     display: flex;
@@ -226,10 +279,26 @@ body,
     --gantt-axis-width: var(--gantt-chart-width);
 }
 
+/* Тёмные цвета диаграммы (5.16). */
+.app[data-theme="dark"] .gantt {
+    --gantt-bar: #4096ff;
+    --gantt-bar-summary: #5b6370;
+    --gantt-bar-critical: #ff4d4f;
+    --gantt-text: rgba(255, 255, 255, 0.75);
+    --gantt-grid: #2e2e2e;
+    --gantt-grid-strong: #3d3d3d;
+    --gantt-weekend: #1d1d1d;
+    --gantt-axis-bg: #1f1f1f;
+    --gantt-name-bg: #1a1a1a;
+    --gantt-name-bg-hover: #242424;
+}
+
 /* Скролл-контейнер: обе оси прокручиваются, шапка и колонка имён «прилипают». */
 .gantt-scroll {
     overflow: auto;
-    max-height: calc(100vh - var(--app-top-height) - 180px);
+    max-height: calc(
+        100vh - var(--app-top-height) - var(--app-status-height) - 150px
+    );
     border: 1px solid var(--app-border);
     border-radius: 6px;
 }

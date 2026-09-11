@@ -6,7 +6,9 @@ import {
   GithubOutlined,
   InfoCircleOutlined,
   LogoutOutlined,
+  MoonOutlined,
   SaveOutlined,
+  SunOutlined,
 } from "@ant-design/icons";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -14,6 +16,7 @@ import { useState } from "react";
 import { TAB_ORDER, TABS } from "../../tabs";
 import { openProject, saveProject } from "../../lib/api";
 import { REPO_URL } from "../../lib/constants";
+import { useHotkey } from "../../hooks/useHotkey";
 import AboutDialog from "../dialogs/AboutDialog";
 import CloseProjectDialog from "../dialogs/CloseProjectDialog";
 import NewProjectDialog from "../dialogs/NewProjectDialog";
@@ -26,8 +29,18 @@ import NewProjectDialog from "../dialogs/NewProjectDialog";
  * @param {string}   props.activeTab          - Текущая активная вкладка (TabKey).
  * @param {Function} props.onTabChange        - Смена вкладки: (tabKey: string) => void.
  * @param {Function} props.onDataChange       - Уведомить приложение об изменении данных.
+ * @param {string}   props.themeMode          - Текущая тема: "light" | "dark".
+ * @param {Function} props.onThemeToggle      - Переключить тему (задача 5.16).
+ * @param {Function} props.onProjectSaved     - Колбэк успешного сохранения (статус-бар, 5.18).
  */
-export default function TopPanel({ activeTab, onTabChange, onDataChange }) {
+export default function TopPanel({
+  activeTab,
+  onTabChange,
+  onDataChange,
+  themeMode,
+  onThemeToggle,
+  onProjectSaved,
+}) {
   /** Открыт ли тот или иной диалог. */
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [closeProjectOpen, setCloseProjectOpen] = useState(false);
@@ -71,11 +84,20 @@ export default function TopPanel({ activeTab, onTabChange, onDataChange }) {
   async function handleSaveProject() {
     try {
       await saveProject();
+      onProjectSaved?.();
       message.success("Проект сохранён");
     } catch (err) {
       message.error(`Не удалось сохранить проект: ${err}`);
     }
   }
+
+  // Горячие клавиши (задача 5.17): Ctrl/Cmd+N — новый проект,
+  // Ctrl/Cmd+S — сохранить, Ctrl/Cmd+O — открыть.
+  // Хендлеры стабильны (диалоги и команды не зависят от состояния),
+  // поэтому слушатель регистрируем один раз.
+  useHotkey("n", () => onFileMenu("new_project"), { ctrl: true });
+  useHotkey("s", () => void handleSaveProject(), { ctrl: true });
+  useHotkey("o", () => void handleOpenProject(), { ctrl: true });
 
   /**
    * Обработчик пунктов меню «Помощь».
@@ -146,6 +168,19 @@ export default function TopPanel({ activeTab, onTabChange, onDataChange }) {
         items={tabMenuItems}
         selectedKeys={[activeTab]}
         onClick={({ key }) => onTabChange(key)}
+      />
+
+      <Button
+        type="text"
+        className="app-top-panel__theme-toggle"
+        icon={themeMode === "dark" ? <SunOutlined /> : <MoonOutlined />}
+        title={
+          themeMode === "dark"
+            ? "Включить светлую тему"
+            : "Включить тёмную тему"
+        }
+        aria-label={themeMode === "dark" ? "Светлая тема" : "Тёмная тема"}
+        onClick={onThemeToggle}
       />
 
       <NewProjectDialog

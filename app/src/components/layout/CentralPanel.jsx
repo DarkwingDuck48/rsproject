@@ -15,15 +15,16 @@ const VIEWS = {
  * Центральная панель: основной контент активной вкладки.
  *
  * @param {Object} props
- * @param {string} props.activeTab   - Текущая активная вкладка (TabKey).
- * @param {number} props.dataVersion - Счётчик изменений данных (для перезагрузки вьюх).
+ * @param {string} props.activeTab    - Текущая активная вкладка (TabKey).
+ * @param {number} props.dataVersion  - Счётчик изменений данных (для перезагрузки вьюх).
+ * @param {Function} props.onDataChange - Уведомить приложение об изменении данных.
  */
-export default function CentralPanel({ activeTab, dataVersion }) {
+export default function CentralPanel({ activeTab, dataVersion, onDataChange }) {
   const ActiveView = VIEWS[activeTab] ?? ProjectView;
 
   return (
     <main className="app-central-panel">
-      <ActiveView dataVersion={dataVersion} />
+      <ActiveView dataVersion={dataVersion} onDataChange={onDataChange} />
     </main>
   );
 }

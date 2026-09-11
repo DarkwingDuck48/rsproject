@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { deleteResource, getResources } from "../../lib/api";
 import { isNoProjectError } from "../../lib/errors";
 import { formatDate } from "../../lib/format";
+import { useHotkey } from "../../hooks/useHotkey";
 import { EXCEPTION_TYPE_LABELS, RATE_MEASURE_LABELS } from "../../lib/options";
 import EditResourceDialog from "../dialogs/EditResourceDialog";
 import NewResourceDialog from "../dialogs/NewResourceDialog";
@@ -30,8 +31,9 @@ import UnavailablePeriodDialog from "../dialogs/UnavailablePeriodDialog";
  *
  * @param {Object} props
  * @param {number} props.dataVersion - Счётчик изменений данных приложения.
+ * @param {Function} props.onDataChange - Уведомить приложение об изменении данных (5.18).
  */
-export default function ResourcesView({ dataVersion }) {
+export default function ResourcesView({ dataVersion, onDataChange }) {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -62,13 +64,26 @@ export default function ResourcesView({ dataVersion }) {
     (resource) => resource.id === selectedId,
   );
 
+  // Delete удаляет выбранный ресурс (задача 5.17). Пока открыт любой диалог —
+  // не удаляем ничего «под модалкой».
+  const dialogOpen =
+    newOpen || editingResource !== null || periodResource !== null;
+  useHotkey(
+    "Delete",
+    () => {
+      if (!dialogOpen) void handleDelete();
+    },
+    { ignoreTyping: true },
+  );
+
   async function handleDelete() {
     if (!selectedResource) return;
     try {
       await deleteResource(selectedResource.id);
       message.success("Ресурс удалён");
       setSelectedId(null);
-      await load();
+      // Глобальное изменение — пусть статус-бар и другие панели перечитают (5.18).
+      onDataChange();
     } catch (err) {
       message.error(`Не удалось удалить ресурс: ${err}`);
     }
@@ -174,22 +189,24 @@ export default function ResourcesView({ dataVersion }) {
         />
       )}
 
+      {/* Создание/редактирование/период меняют данные глобально —
+          инкремент dataVersion перезагрузит вьюху и статус-бар (5.18). */}
       <NewResourceDialog
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreated={load}
+        onCreated={onDataChange}
       />
       <EditResourceDialog
         open={editingResource != null}
         resource={editingResource}
         onClose={() => setEditingResource(null)}
-        onSaved={load}
+        onSaved={onDataChange}
       />
       <UnavailablePeriodDialog
         open={periodResource != null}
         resource={periodResource}
         onClose={() => setPeriodResource(null)}
-        onSaved={load}
+        onSaved={onDataChange}
       />
     </section>
   );

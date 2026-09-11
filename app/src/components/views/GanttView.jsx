@@ -277,8 +277,9 @@ function renderChart({
  *
  * @param {Object} props
  * @param {number} props.dataVersion - Счётчик изменений данных приложения.
+ * @param {Function} props.onDataChange - Уведомить приложение об изменении данных.
  */
-export default function GanttView({ dataVersion }) {
+export default function GanttView({ dataVersion, onDataChange }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   /** UUID'ы задач критического пути (null — не рассчитан). */
@@ -316,6 +317,9 @@ export default function GanttView({ dataVersion }) {
       const path = await recalculateCriticalPath();
       setCriticalPath(path);
       message.success(`Критический путь: ${path.length} задач`);
+      // Критический путь пересчитан — пусть статус-бар и другие панели
+      // перечитают данные (5.18).
+      onDataChange?.();
     } catch (err) {
       message.error(`Не удалось рассчитать критический путь: ${err}`);
     } finally {

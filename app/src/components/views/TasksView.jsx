@@ -23,6 +23,7 @@ import {
 } from "../../lib/api";
 import { isNoProjectError } from "../../lib/errors";
 import { formatDate } from "../../lib/format";
+import { useHotkey } from "../../hooks/useHotkey";
 import { TASK_STATUS_LABELS } from "../../lib/options";
 import AssignResourceDialog from "../dialogs/AssignResourceDialog";
 import NewTaskDialog from "../dialogs/NewTaskDialog";
@@ -47,8 +48,9 @@ function toRows(nodes) {
  *
  * @param {Object} props
  * @param {number} props.dataVersion - Счётчик изменений данных приложения (для перезагрузки).
+ * @param {Function} props.onDataChange - Уведомить приложение об изменении данных.
  */
-export default function TasksView({ dataVersion }) {
+export default function TasksView({ dataVersion, onDataChange }) {
   const [rows, setRows] = useState([]);
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -86,13 +88,25 @@ export default function TasksView({ dataVersion }) {
   const detailsTask = rows.find((row) => row.id === detailsTaskId);
   const assignTask = rows.find((row) => row.id === assignTaskId);
 
+  // Delete удаляет выбранную задачу (задача 5.17). Пока открыт любой диалог —
+  // не удаляем ничего «под модалкой».
+  const dialogOpen = newOpen || detailsTaskId !== null || assignTaskId !== null;
+  useHotkey(
+    "Delete",
+    () => {
+      if (!dialogOpen) void handleDelete();
+    },
+    { ignoreTyping: true },
+  );
+
   async function handleDelete() {
     if (!selectedTask) return;
     try {
       await deleteTask(selectedTask.id);
       message.success("Задача удалена");
       setSelectedId(null);
-      await load();
+      // Глобальное изменение — пусть статус-бар и другие панели перечитают (5.18).
+      onDataChange();
     } catch (err) {
       message.error(`Не удалось удалить задачу: ${err}`);
     }
@@ -102,6 +116,9 @@ export default function TasksView({ dataVersion }) {
     try {
       const path = await recalculateCriticalPath();
       message.success(`Критический путь: ${path.length} задач`);
+      // Сообщаем приложению: критический путь пересчитан —
+      // статус-бар и другие панели перечитают данные.
+      onDataChange?.();
     } catch (err) {
       message.error(`Не удалось рассчитать критический путь: ${err}`);
     }
@@ -214,23 +231,25 @@ export default function TasksView({ dataVersion }) {
         />
       )}
 
+      {/* Создание/редактирование/назначение меняют данные глобально —
+          инкремент dataVersion перезагрузит вьюху и статус-бар (5.18). */}
       <NewTaskDialog
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        onCreated={load}
+        onCreated={onDataChange}
       />
       <TaskDetailsDialog
         open={detailsTask != null}
         task={detailsTask}
         taskTree={tree}
         onClose={() => setDetailsTaskId(null)}
-        onSaved={load}
+        onSaved={onDataChange}
       />
       <AssignResourceDialog
         open={assignTask != null}
         task={assignTask}
         onClose={() => setAssignTaskId(null)}
-        onSaved={load}
+        onSaved={onDataChange}
       />
     </section>
   );

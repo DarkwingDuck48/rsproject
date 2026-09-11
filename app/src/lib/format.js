@@ -2,6 +2,8 @@
  * @fileoverview Общие функции форматирования для отображения данных.
  */
 
+import dayjs from "dayjs";
+
 /**
  * Форматирует дату из бэкенда (RFC 3339, напр. "2026-09-11T00:00:00Z")
  * в удобный для отображения вид "DD.MM.YYYY".
@@ -30,4 +32,16 @@ export function pluralDays(n) {
   if (mod10 === 1) return `${n} день`;
   if (mod10 >= 2 && mod10 <= 4) return `${n} дня`;
   return `${n} дней`;
+}
+
+/**
+ * Форматирует JavaScript Date в "ДД.ММ.ГГГГ ЧЧ:ММ" для статус-бара (5.18).
+ * На входе — локальный объект Date (в отличие от formatDate, где приходят
+ * строки с бэкенда), поэтому используем dayjs в локальном часовом поясе.
+ * @param {?Date} date - Момент времени или null (если ещё не сохраняли).
+ * @returns {string}
+ */
+export function formatDateTime(date) {
+  if (!date) return "—";
+  return dayjs(date).format("DD.MM.YYYY HH:mm");
 }
