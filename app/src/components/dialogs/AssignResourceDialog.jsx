@@ -91,6 +91,7 @@ export default function AssignResourceDialog({ open, task, onClose, onSaved }) {
     <Modal
       open={open}
       title={`Назначить ресурс: ${task?.name ?? ""}`}
+      onCancel={onClose}
       footer={null}
       destroyOnHidden
     >

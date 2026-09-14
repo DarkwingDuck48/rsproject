@@ -1,13 +1,11 @@
 use chrono::{DateTime, Utc};
 use logic::{
-    BasicGettersForStructures, Dependency, DependencyType, ResourceAllocation, Task, TaskService,
-    TaskStatus, TimeWindow,
+    BasicGettersForStructures, Dependency, DependencyType, ResourceAllocation, Task, TaskStatus,
+    TimeWindow,
 };
 use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
-
-use crate::state::AppState;
 
 #[derive(Serialize, Clone)]
 pub struct TaskDependencyInfo {
@@ -51,9 +49,12 @@ pub struct TaskUpdateDto {
     pub date_start: Option<String>,
     pub date_end: Option<String>,
     pub status: Option<TaskStatus>,
-    // Это нужно, чтобы различать ситуации, когда мы не поменяли parent_id
-    // и когда мы хотим его выставить как None
-    pub parent_id: Option<Option<Uuid>>,
+    /// Some(UUID) — поставить родителя. Отсутствие/null — поле не меняем.
+    #[serde(default)]
+    pub parent_id: Option<Uuid>,
+    /// true — сбросить родителя в корень. Нельзя передавать вместе с `parent_id`.
+    #[serde(default)]
+    pub parent_cleared: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -90,22 +91,6 @@ impl TaskInfo {
                 .collect(),
             allocations_count: task.get_resource_allocations().len(),
         }
-    }
-
-    pub fn from_state(
-        state: tauri::State<'_, AppState>,
-        project_id: Uuid,
-        task_id: Uuid,
-    ) -> Result<Self, String> {
-        let mut container = state.container();
-        let task_service = TaskService::new(&mut *container);
-        let task = task_service
-            .get_task_by_id(&project_id, &task_id)
-            .ok_or(format!("Не найдена задача с ID {}", task_id))?;
-        let task_cost = task_service
-            .calculate_task_cost(&project_id, &task_id)
-            .unwrap_or(0.0);
-        Ok(Self::from_task(task, task_cost))
     }
 }
 

@@ -20,6 +20,7 @@ import { deleteResource, getResources } from "../../lib/api";
 import { isNoProjectError } from "../../lib/errors";
 import { formatDate } from "../../lib/format";
 import { useHotkey } from "../../hooks/useHotkey";
+import { useSelection } from "../../context/SelectionContext";
 import { EXCEPTION_TYPE_LABELS, RATE_MEASURE_LABELS } from "../../lib/options";
 import EditResourceDialog from "../dialogs/EditResourceDialog";
 import NewResourceDialog from "../dialogs/NewResourceDialog";
@@ -34,9 +35,9 @@ import UnavailablePeriodDialog from "../dialogs/UnavailablePeriodDialog";
  * @param {Function} props.onDataChange - Уведомить приложение об изменении данных (5.18).
  */
 export default function ResourcesView({ dataVersion, onDataChange }) {
+  const { selectedResourceId, selectResource } = useSelection();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
   // Управление диалогами
   const [newOpen, setNewOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
@@ -60,8 +61,18 @@ export default function ResourcesView({ dataVersion, onDataChange }) {
     void load();
   }, [dataVersion]);
 
+  // 5.21: если выбранного ресурса больше нет в данных — сбрасываем выделение.
+  useEffect(() => {
+    if (
+      selectedResourceId &&
+      !resources.some((resource) => resource.id === selectedResourceId)
+    ) {
+      selectResource(null);
+    }
+  }, [resources, selectedResourceId, selectResource]);
+
   const selectedResource = resources.find(
-    (resource) => resource.id === selectedId,
+    (resource) => resource.id === selectedResourceId,
   );
 
   // Delete удаляет выбранный ресурс (задача 5.17). Пока открыт любой диалог —
@@ -81,7 +92,7 @@ export default function ResourcesView({ dataVersion, onDataChange }) {
     try {
       await deleteResource(selectedResource.id);
       message.success("Ресурс удалён");
-      setSelectedId(null);
+      selectResource(null);
       // Глобальное изменение — пусть статус-бар и другие панели перечитают (5.18).
       onDataChange();
     } catch (err) {
@@ -182,8 +193,8 @@ export default function ResourcesView({ dataVersion, onDataChange }) {
           columns={columns}
           rowSelection={{
             type: "radio",
-            selectedRowKeys: selectedId ? [selectedId] : [],
-            onChange: (keys) => setSelectedId(keys.length ? keys[0] : null),
+            selectedRowKeys: selectedResourceId ? [selectedResourceId] : [],
+            onChange: (keys) => selectResource(keys.length ? keys[0] : null),
           }}
           pagination={false}
         />

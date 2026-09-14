@@ -15,6 +15,7 @@
     --app-text-secondary: rgba(0, 0, 0, 0.55);
     --app-border: #e5e5e5;
     --app-accent: #1677ff;
+    --app-accent-soft: rgba(22, 119, 255, 0.14);
 
     --app-top-height: 82px; /* меню-бар 36px + панель вкладок 46px */
     --app-menu-height: 36px;
@@ -31,6 +32,7 @@
     --app-text-secondary: rgba(255, 255, 255, 0.55);
     --app-border: #3d3d3d;
     --app-accent: #4096ff;
+    --app-accent-soft: rgba(64, 150, 255, 0.18);
 
     /* Нативные контролы (скроллбары, календарь) тоже тёмные. */
     color-scheme: dark;
@@ -184,7 +186,24 @@ body,
 }
 
 .side-list__item:hover {
-    background: var(--app-bg-side);
+    background: var(--app-bg-panel);
+}
+
+/* Кликабельные элементы (задачи/ресурсы) — курсор-указатель. */
+.side-list__item--clickable {
+    cursor: pointer;
+}
+
+/* Выделенный элемент (задача 5.21): клик в сайдбаре синхронизирован
+   с таблицей через SelectionContext. */
+.side-list__item--selected,
+.side-list__item--selected:hover {
+    background: var(--app-accent-soft);
+}
+
+.side-list__item--selected .side-list__item-name {
+    color: var(--app-accent);
+    font-weight: 600;
 }
 
 .side-list__item--summary {

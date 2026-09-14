@@ -63,6 +63,7 @@ export default function UnavailablePeriodDialog({
     <Modal
       open={open}
       title={`Период недоступности: ${resource?.name ?? ""}`}
+      onCancel={onClose}
       footer={null}
       destroyOnHidden
     >

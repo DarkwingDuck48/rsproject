@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getProjectInfo, getResources, getTaskTree } from "../../lib/api";
 import { isNoProjectError } from "../../lib/errors";
 import { formatDate } from "../../lib/format";
+import { useSelection } from "../../context/SelectionContext";
 import { TABS } from "../../tabs";
 
 /** Пустые состояния списков по вкладкам. */
@@ -17,15 +18,16 @@ const EMPTY_HINTS = {
 const MAX_LIST_ITEMS = 200;
 
 /**
- * Дерево задач → плоский список { name, depth, isSummary } для отображения.
+ * Дерево задач → плоский список { id, name, depth, isSummary } для отображения.
  * @param {TaskTreeNode[]} nodes
  * @param {number} depth
- * @param {Array<{name: string, depth: number}>} out
- * @returns {Array<{name: string, depth: number}>}
+ * @param {Array<{id: string, name: string, depth: number, isSummary: boolean}>} out
+ * @returns {Array<{id: string, name: string, depth: number, isSummary: boolean}>}
  */
 function flattenTaskNames(nodes, depth = 0, out = []) {
   for (const node of nodes) {
     out.push({
+      id: node.task.id,
       name: node.task.name,
       isSummary: node.task.is_summary,
       depth,
@@ -38,14 +40,17 @@ function flattenTaskNames(nodes, depth = 0, out = []) {
 /**
  * Боковая панель: список элементов текущей вкладки (проект / задачи / ресурсы).
  *
- * Список информационный: главное выделение/редактирование происходит во вьюхе.
- * Синхронизация клика по элементу с выделением в таблице — задача 5.21.
+ * Клик по задаче/ресурсу выделяет её в таблице центральной панели (задача
+ * 5.21): выделение живёт в общем SelectionContext, поэтому обе стороны
+ * (сайдбар и таблица) всегда синхронизированы.
  *
  * @param {Object} props
  * @param {string} props.activeTab   - Текущая активная вкладка (TabKey).
  * @param {number} props.dataVersion - Счётчик изменений данных (для перезагрузки).
  */
 export default function SidePanel({ activeTab, dataVersion }) {
+  const { selectedTaskId, selectTask, selectedResourceId, selectResource } =
+    useSelection();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -77,7 +82,11 @@ export default function SidePanel({ activeTab, dataVersion }) {
           const resources = await getResources();
           if (cancelled) return;
           setItems(
-            resources.map((resource) => ({ name: resource.name, depth: 0 })),
+            resources.map((resource) => ({
+              id: resource.id,
+              name: resource.name,
+              depth: 0,
+            })),
           );
         } else {
           setItems([]);
@@ -99,6 +108,8 @@ export default function SidePanel({ activeTab, dataVersion }) {
   }, [activeTab, dataVersion]);
 
   const tab = TABS[activeTab] ?? TABS.project;
+  // Вкладки «Задачи» и «Ганта» показывают одно дерево задач → одно выделение.
+  const isTaskTab = tab.key === "tasks" || tab.key === "gantt";
   const visible = items.slice(0, MAX_LIST_ITEMS);
 
   return (
@@ -118,21 +129,40 @@ export default function SidePanel({ activeTab, dataVersion }) {
           />
         ) : (
           <ul className="side-list">
-            {visible.map((item, index) => (
-              <li
-                key={`${index}-${item.name}`}
-                className={`side-list__item${item.isSummary ? " side-list__item--summary" : ""}`}
-                style={{ paddingLeft: 8 + item.depth * 14 }}
-                title={item.name}
-              >
-                <Space size={6}>
-                  <span className="side-list__item-name">{item.name}</span>
-                  {item.sub && (
-                    <span className="side-list__item-sub">{item.sub}</span>
-                  )}
-                </Space>
-              </li>
-            ))}
+            {visible.map((item, index) => {
+              const selected = isTaskTab
+                ? selectedTaskId === item.id
+                : selectedResourceId === item.id;
+              const className = [
+                "side-list__item",
+                item.isSummary && "side-list__item--summary",
+                item.id && "side-list__item--clickable",
+                selected && "side-list__item--selected",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return (
+                <li
+                  key={`${index}-${item.name}`}
+                  className={className}
+                  style={{ paddingLeft: 8 + item.depth * 14 }}
+                  title={item.name}
+                  onClick={() => {
+                    // У проекта ID нет — клик по нему ничего не выделяет.
+                    if (!item.id) return;
+                    if (isTaskTab) selectTask(item.id);
+                    else selectResource(item.id);
+                  }}
+                >
+                  <Space size={6}>
+                    <span className="side-list__item-name">{item.name}</span>
+                    {item.sub && (
+                      <span className="side-list__item-sub">{item.sub}</span>
+                    )}
+                  </Space>
+                </li>
+              );
+            })}
             {items.length > MAX_LIST_ITEMS && (
               <li className="side-list__more">
                 … и ещё {items.length - MAX_LIST_ITEMS}

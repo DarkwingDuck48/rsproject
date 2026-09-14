@@ -1,7 +1,7 @@
 use chrono::{TimeZone, Utc};
 use logic::{
     BasicGettersForStructures, ExceptionPeriod, ExceptionType, Project, ProjectContainer,
-    RateMeasure, ResourceService, SingleProjectContainer, TaskService, TimeWindow,
+    RateMeasure, ResourceService, SingleProjectContainer, TaskService, TaskUpdate, TimeWindow,
 };
 
 #[test]
@@ -70,6 +70,191 @@ fn test_full_scenario() -> anyhow::Result<()> {
     eprintln!("Calculated task cost: {}", task_cost);
     // 80 часов (10 рабочих дней) * 0.8 engagement rate * 1000 hourly rate
     assert!(task_cost == 1000.0 * 0.8 * 80.0);
+
+    Ok(())
+}
+
+/// Проверка на цикл при смене родителя (задача 5.20): задача не может стать
+/// потомком своего собственного потомка. Дерево: A → B → C.
+#[test]
+fn test_cannot_make_task_child_of_own_descendant() -> anyhow::Result<()> {
+    let mut container = SingleProjectContainer::new();
+
+    let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    let end = Utc.with_ymd_and_hms(2026, 12, 31, 0, 0, 0).unwrap();
+    let project = Project::new("Test", "Cycle test", start, end)?;
+    let project_id = *project.get_id();
+    container.add_project(project)?;
+
+    let task_date = Utc.with_ymd_and_hms(2026, 3, 1, 0, 0, 0).unwrap();
+    let (task_a, task_b, task_c) = {
+        let mut task_service = TaskService::new(&mut container);
+        let a = task_service.create_regular_task(
+            project_id,
+            "A".into(),
+            task_date,
+            task_date + chrono::TimeDelta::days(5),
+            None,
+        )?;
+        let a_id = *a.get_id();
+
+        let b = task_service.create_regular_task(
+            project_id,
+            "B".into(),
+            task_date,
+            task_date + chrono::TimeDelta::days(5),
+            Some(a_id),
+        )?;
+        let b_id = *b.get_id();
+
+        let c = task_service.create_regular_task(
+            project_id,
+            "C".into(),
+            task_date,
+            task_date + chrono::TimeDelta::days(5),
+            Some(b_id),
+        )?;
+        let c_id = *c.get_id();
+
+        (a_id, b_id, c_id)
+    };
+
+    // Сделать A (корень) потомком C (её потомка) → цикл → ошибка.
+    let cycle_error = {
+        let mut task_service = TaskService::new(&mut container);
+        task_service.update_task(
+            project_id,
+            task_a,
+            TaskUpdate {
+                name: None,
+                start: None,
+                end: None,
+                parent_id: Some(Some(task_c)),
+                status: None,
+            },
+        )
+    };
+    assert!(
+        cycle_error.is_err(),
+        "Ожидали ошибку о цикле, но задача A стала потомком C"
+    );
+
+    // Дерево не изменилось: A всё ещё корень, B — потомок A.
+    {
+        let task_service = TaskService::new(&mut container);
+        let a = task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task_a)
+            .unwrap();
+        assert_eq!(a.parent_id, None);
+        let b = task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&task_b)
+            .unwrap();
+        assert_eq!(b.parent_id, Some(task_a));
+    }
+
+    // Позитивный случай: B (потомок A) → ставим родителем A — цикла нет.
+    let ok = {
+        let mut task_service = TaskService::new(&mut container);
+        task_service.update_task(
+            project_id,
+            task_b,
+            TaskUpdate {
+                name: None,
+                start: None,
+                end: None,
+                parent_id: Some(Some(task_a)),
+                status: None,
+            },
+        )
+    };
+    assert!(
+        ok.is_ok(),
+        "Перенос B под A (не цикл) должен быть разрешён: {:?}",
+        ok.err()
+    );
+
+    Ok(())
+}
+
+/// Сброс родителя в корень (задача 5.20): `Some(None)` очищает parent_id
+/// и не должен считаться циклом.
+#[test]
+fn test_clear_parent_to_root() -> anyhow::Result<()> {
+    let mut container = SingleProjectContainer::new();
+
+    let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    let end = Utc.with_ymd_and_hms(2026, 12, 31, 0, 0, 0).unwrap();
+    let project = Project::new("Test", "Clear parent", start, end)?;
+    let project_id = *project.get_id();
+    container.add_project(project)?;
+
+    let task_date = Utc.with_ymd_and_hms(2026, 3, 1, 0, 0, 0).unwrap();
+    let (parent_id, child_id) = {
+        let mut task_service = TaskService::new(&mut container);
+        let parent = task_service.create_regular_task(
+            project_id,
+            "Parent".into(),
+            task_date,
+            task_date + chrono::TimeDelta::days(5),
+            None,
+        )?;
+        let parent_id = *parent.get_id();
+
+        let child = task_service.create_regular_task(
+            project_id,
+            "Child".into(),
+            task_date,
+            task_date + chrono::TimeDelta::days(5),
+            Some(parent_id),
+        )?;
+        (parent_id, *child.get_id())
+    };
+
+    {
+        let mut task_service = TaskService::new(&mut container);
+        task_service.update_task(
+            project_id,
+            child_id,
+            TaskUpdate {
+                name: None,
+                start: None,
+                end: None,
+                parent_id: Some(None), // очистить родителя
+                status: None,
+            },
+        )?;
+    }
+
+    let child = {
+        let task_service = TaskService::new(&mut container);
+        task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&child_id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(child.parent_id, None);
+
+    // Самого родителя трогать не должны.
+    let parent = {
+        let task_service = TaskService::new(&mut container);
+        task_service
+            .get_project(&project_id)
+            .unwrap()
+            .tasks
+            .get(&parent_id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(parent.parent_id, None);
 
     Ok(())
 }

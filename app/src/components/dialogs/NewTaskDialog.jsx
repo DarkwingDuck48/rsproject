@@ -115,7 +115,13 @@ export default function NewTaskDialog({ open, onClose, onCreated }) {
   }
 
   return (
-    <Modal open={open} title="Новая задача" footer={null} destroyOnHidden>
+    <Modal
+      open={open}
+      title="Новая задача"
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <Form layout="vertical" onFinish={handleFinish}>
         <Form.Item
           name="name"

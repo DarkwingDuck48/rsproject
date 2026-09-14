@@ -25,6 +25,7 @@ import { isNoProjectError } from "../../lib/errors";
 import { formatDate } from "../../lib/format";
 import { useHotkey } from "../../hooks/useHotkey";
 import { TASK_STATUS_LABELS } from "../../lib/options";
+import { useSelection } from "../../context/SelectionContext";
 import AssignResourceDialog from "../dialogs/AssignResourceDialog";
 import NewTaskDialog from "../dialogs/NewTaskDialog";
 import TaskDetailsDialog from "../dialogs/TaskDetailsDialog";
@@ -43,6 +44,25 @@ function toRows(nodes) {
 }
 
 /**
+ * Ищет запись таблицы по ID, включая вложенные `children`.
+ * Передаётся в Table через `children`, поэтому поиск по верхнему уровню
+ * не находил бы дочерние задачи (баг, исправлен в 5.21).
+ * @param {Array<Object>} rows
+ * @param {string} id
+ * @returns {?Object}
+ */
+function findRow(rows, id) {
+  for (const row of rows) {
+    if (row.id === id) return row;
+    if (Array.isArray(row.children)) {
+      const found = findRow(row.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
  * Вкладка «Задачи»: дерево задач с иерархией и действиями
  * Add / Edit / Delete / Assign Resource.
  *
@@ -51,10 +71,10 @@ function toRows(nodes) {
  * @param {Function} props.onDataChange - Уведомить приложение об изменении данных.
  */
 export default function TasksView({ dataVersion, onDataChange }) {
+  const { selectedTaskId, selectTask } = useSelection();
   const [rows, setRows] = useState([]);
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
   // Управление диалогами
   const [newOpen, setNewOpen] = useState(false);
   const [detailsTaskId, setDetailsTaskId] = useState(null);
@@ -82,11 +102,19 @@ export default function TasksView({ dataVersion, onDataChange }) {
     void load();
   }, [dataVersion]);
 
-  const selectedTask = rows.find((row) => row.id === selectedId);
+  // 5.21: если выбранной задачи больше нет в данных — сбрасываем выделение
+  // (например, задача удалена из другой панели или проект закрыт).
+  useEffect(() => {
+    if (selectedTaskId && !findRow(rows, selectedTaskId)) {
+      selectTask(null);
+    }
+  }, [rows, selectedTaskId, selectTask]);
+
+  const selectedTask = findRow(rows, selectedTaskId);
   // Деривируем объекты из свежих данных: после `load()` диалоги
   // получают обновлённый список зависимостей/назначений.
-  const detailsTask = rows.find((row) => row.id === detailsTaskId);
-  const assignTask = rows.find((row) => row.id === assignTaskId);
+  const detailsTask = findRow(rows, detailsTaskId);
+  const assignTask = findRow(rows, assignTaskId);
 
   // Delete удаляет выбранную задачу (задача 5.17). Пока открыт любой диалог —
   // не удаляем ничего «под модалкой».
@@ -104,7 +132,7 @@ export default function TasksView({ dataVersion, onDataChange }) {
     try {
       await deleteTask(selectedTask.id);
       message.success("Задача удалена");
-      setSelectedId(null);
+      selectTask(null);
       // Глобальное изменение — пусть статус-бар и другие панели перечитают (5.18).
       onDataChange();
     } catch (err) {
@@ -224,8 +252,8 @@ export default function TasksView({ dataVersion, onDataChange }) {
           }}
           rowSelection={{
             type: "radio",
-            selectedRowKeys: selectedId ? [selectedId] : [],
-            onChange: (keys) => setSelectedId(keys.length ? keys[0] : null),
+            selectedRowKeys: selectedTaskId ? [selectedTaskId] : [],
+            onChange: (keys) => selectTask(keys.length ? keys[0] : null),
           }}
           pagination={false}
         />

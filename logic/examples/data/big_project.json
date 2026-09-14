@@ -1,0 +1,1100 @@
+{
+  "project": {
+    "id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+    "name": "Крупный демо-проект (50+ задач)",
+    "description": "Проект разработки программного комплекса с группировкой задач",
+    "calendar": {
+      "working_days": [
+        "Wed",
+        "Thu",
+        "Mon",
+        "Tue",
+        "Fri"
+      ],
+      "holidays": [],
+      "working_hours_per_day": 8
+    },
+    "date_start": "2025-01-01T00:00:00Z",
+    "date_end": "2026-12-31T00:00:00Z",
+    "duration": [
+      62985600,
+      0
+    ],
+    "tasks": {
+      "60b19daa-6e22-412b-94b1-478d87b764a9": {
+        "id": "60b19daa-6e22-412b-94b1-478d87b764a9",
+        "name": "Реализация модуля B (часть 2)",
+        "date_start": "2025-05-01T00:00:00Z",
+        "date_end": "2025-05-20T00:00:00Z",
+        "duration": [
+          1641600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "460b5993-09a7-4727-9add-488858938347"
+        ],
+        "dependencies": [],
+        "parent_id": "eb79ae84-19c8-4f84-a480-b53b84952d49",
+        "is_summary": false
+      },
+      "20053c86-4109-495f-813f-835fdcf61b0a": {
+        "id": "20053c86-4109-495f-813f-835fdcf61b0a",
+        "name": "6. Пост-релизная поддержка",
+        "date_start": "2025-09-02T00:00:00Z",
+        "date_end": "2025-11-01T00:00:00Z",
+        "duration": [
+          5184000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "ae284e0c-8f2c-402c-a383-95719c98e6ff",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "cfe5a00a-67fa-4f0f-9663-f9d7256532a6": {
+        "id": "cfe5a00a-67fa-4f0f-9663-f9d7256532a6",
+        "name": "4. Тестирование",
+        "date_start": "2025-05-16T00:00:00Z",
+        "date_end": "2025-07-10T00:00:00Z",
+        "duration": [
+          4752000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "7dee7828-9daa-4179-b0ff-829a7757a010",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "9409de04-8fa5-4a2a-ad8c-4fce2e4f54e5": {
+        "id": "9409de04-8fa5-4a2a-ad8c-4fce2e4f54e5",
+        "name": "Развертывание в продуктив",
+        "date_start": "2025-08-21T00:00:00Z",
+        "date_end": "2025-09-01T00:00:00Z",
+        "duration": [
+          950400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "f85495ca-ab0d-4925-bfce-13ae6ed7eb42"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "a524856b-f749-4a70-b819-d0799bff06c3",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "ae284e0c-8f2c-402c-a383-95719c98e6ff",
+        "is_summary": false
+      },
+      "2befda6f-808c-4be3-a062-76cc71fd1a2b": {
+        "id": "2befda6f-808c-4be3-a062-76cc71fd1a2b",
+        "name": "Пилотное внедрение",
+        "date_start": "2025-08-01T00:00:00Z",
+        "date_end": "2025-08-20T00:00:00Z",
+        "duration": [
+          1641600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "c1f1accb-e6e5-4230-9065-884440f28dcd"
+        ],
+        "dependencies": [],
+        "parent_id": "ae284e0c-8f2c-402c-a383-95719c98e6ff",
+        "is_summary": false
+      },
+      "33296e49-678d-4e81-8d99-1c83b2f13203": {
+        "id": "33296e49-678d-4e81-8d99-1c83b2f13203",
+        "name": "1. Инициация проекта",
+        "date_start": "2025-01-02T00:00:00Z",
+        "date_end": "2025-01-15T00:00:00Z",
+        "duration": [
+          1123200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "ae284e0c-8f2c-402c-a383-95719c98e6ff": {
+        "id": "ae284e0c-8f2c-402c-a383-95719c98e6ff",
+        "name": "5. Внедрение",
+        "date_start": "2025-07-01T00:00:00Z",
+        "date_end": "2025-09-01T00:00:00Z",
+        "duration": [
+          5356800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "cfe5a00a-67fa-4f0f-9663-f9d7256532a6",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "bb20094e-0b43-4545-8aec-7a93dd29880d": {
+        "id": "bb20094e-0b43-4545-8aec-7a93dd29880d",
+        "name": "3.1 Настройка среды",
+        "date_start": "2025-03-21T00:00:00Z",
+        "date_end": "2025-04-05T00:00:00Z",
+        "duration": [
+          1296000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": "7dee7828-9daa-4179-b0ff-829a7757a010",
+        "is_summary": true
+      },
+      "327fad7a-1034-46de-834d-6c604bae91d8": {
+        "id": "327fad7a-1034-46de-834d-6c604bae91d8",
+        "name": "Реализация модуля B (часть 1)",
+        "date_start": "2025-04-10T00:00:00Z",
+        "date_end": "2025-04-30T00:00:00Z",
+        "duration": [
+          1728000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "5360de82-f667-43b7-a1e1-2bbc0d019ca3"
+        ],
+        "dependencies": [],
+        "parent_id": "eb79ae84-19c8-4f84-a480-b53b84952d49",
+        "is_summary": false
+      },
+      "9f399a43-9ef8-45a8-9ecc-7805106df713": {
+        "id": "9f399a43-9ef8-45a8-9ecc-7805106df713",
+        "name": "Сбор требований",
+        "date_start": "2025-01-16T00:00:00Z",
+        "date_end": "2025-02-10T00:00:00Z",
+        "duration": [
+          2160000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "8aa1c007-93fd-44d4-be31-083683a2f342"
+        ],
+        "dependencies": [],
+        "parent_id": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+        "is_summary": false
+      },
+      "d1b74afd-fd17-44ff-b438-3f6ec53a1f6f": {
+        "id": "d1b74afd-fd17-44ff-b438-3f6ec53a1f6f",
+        "name": "Оценка сроков и стоимости",
+        "date_start": "2025-03-11T00:00:00Z",
+        "date_end": "2025-03-20T00:00:00Z",
+        "duration": [
+          777600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "5792b555-ca0e-4691-b8a5-12c39929b0e5"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "3c859147-8bc6-4aaf-b5e5-c19739b16b04",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+        "is_summary": false
+      },
+      "daad8446-5d88-4f71-99bc-14ee526c03a3": {
+        "id": "daad8446-5d88-4f71-99bc-14ee526c03a3",
+        "name": "Системное тестирование",
+        "date_start": "2025-06-26T00:00:00Z",
+        "date_end": "2025-07-10T00:00:00Z",
+        "duration": [
+          1209600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "e034a7de-3a84-45a7-b06a-53d73f2e65e6"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "4a3ce681-1978-4f76-9b2d-4d0be19ee39a",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "cfe5a00a-67fa-4f0f-9663-f9d7256532a6",
+        "is_summary": false
+      },
+      "7dee7828-9daa-4179-b0ff-829a7757a010": {
+        "id": "7dee7828-9daa-4179-b0ff-829a7757a010",
+        "name": "3. Разработка",
+        "date_start": "2025-03-21T00:00:00Z",
+        "date_end": "2025-05-20T00:00:00Z",
+        "duration": [
+          5184000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "652a615b-1e09-4c3f-9288-efe3f102c1c9": {
+        "id": "652a615b-1e09-4c3f-9288-efe3f102c1c9",
+        "name": "Назначение команды",
+        "date_start": "2025-01-05T00:00:00Z",
+        "date_end": "2025-01-12T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "4f71bbfe-5c7b-49b5-9761-b147df5f3335"
+        ],
+        "dependencies": [],
+        "parent_id": "33296e49-678d-4e81-8d99-1c83b2f13203",
+        "is_summary": false
+      },
+      "a524856b-f749-4a70-b819-d0799bff06c3": {
+        "id": "a524856b-f749-4a70-b819-d0799bff06c3",
+        "name": "Подготовка документации",
+        "date_start": "2025-07-01T00:00:00Z",
+        "date_end": "2025-07-20T00:00:00Z",
+        "duration": [
+          1641600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "2e7606b6-656e-4ffa-a401-3e05ea19d71e"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "daad8446-5d88-4f71-99bc-14ee526c03a3",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "ae284e0c-8f2c-402c-a383-95719c98e6ff",
+        "is_summary": false
+      },
+      "8c8573cf-c114-429a-88ec-603874a14e7f": {
+        "id": "8c8573cf-c114-429a-88ec-603874a14e7f",
+        "name": "Плановые обновления",
+        "date_start": "2025-10-06T00:00:00Z",
+        "date_end": "2025-11-01T00:00:00Z",
+        "duration": [
+          2246400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "f7f03b97-4c06-4973-8675-5481a512e3aa"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "3a21b506-fdd1-4936-a029-4efe67a0d7e7",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "20053c86-4109-495f-813f-835fdcf61b0a",
+        "is_summary": false
+      },
+      "a1c15265-7c08-4701-a069-be338b7c8fcc": {
+        "id": "a1c15265-7c08-4701-a069-be338b7c8fcc",
+        "name": "Реализация модуля A (часть 2)",
+        "date_start": "2025-04-26T00:00:00Z",
+        "date_end": "2025-05-15T00:00:00Z",
+        "duration": [
+          1641600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "6ed2ecf9-bc9e-4801-a6c5-ea1996b31961"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "ffdf9fbf-4b1f-4b41-9871-408d35a25292",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "c53394e4-353c-49c7-a05b-7a4de66fe620",
+        "is_summary": false
+      },
+      "3c859147-8bc6-4aaf-b5e5-c19739b16b04": {
+        "id": "3c859147-8bc6-4aaf-b5e5-c19739b16b04",
+        "name": "Проектирование архитектуры",
+        "date_start": "2025-02-26T00:00:00Z",
+        "date_end": "2025-03-15T00:00:00Z",
+        "duration": [
+          1468800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "d4ca1c14-6aec-431a-b613-f4ebeda5675f"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "c3b58274-2aac-4cb3-b56d-5657b5aa2b89",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+        "is_summary": false
+      },
+      "77786a04-2b47-46a8-9271-11a329b9d4c9": {
+        "id": "77786a04-2b47-46a8-9271-11a329b9d4c9",
+        "name": "Обучение пользователей",
+        "date_start": "2025-07-15T00:00:00Z",
+        "date_end": "2025-08-05T00:00:00Z",
+        "duration": [
+          1814400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "f6c29a6c-35c7-40e0-b3ba-3360926e0140"
+        ],
+        "dependencies": [],
+        "parent_id": "ae284e0c-8f2c-402c-a383-95719c98e6ff",
+        "is_summary": false
+      },
+      "284eb808-03ee-4732-9737-9e6c70d25e0f": {
+        "id": "284eb808-03ee-4732-9737-9e6c70d25e0f",
+        "name": "Разработка устава проекта",
+        "date_start": "2025-01-02T00:00:00Z",
+        "date_end": "2025-01-10T00:00:00Z",
+        "duration": [
+          691200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "e3832696-4a3c-44d5-8191-4e40e7263c0f"
+        ],
+        "dependencies": [],
+        "parent_id": "33296e49-678d-4e81-8d99-1c83b2f13203",
+        "is_summary": false
+      },
+      "7c3bace5-53f8-4911-8b84-e76559c9a73e": {
+        "id": "7c3bace5-53f8-4911-8b84-e76559c9a73e",
+        "name": "Настройка репозиториев",
+        "date_start": "2025-03-25T00:00:00Z",
+        "date_end": "2025-04-05T00:00:00Z",
+        "duration": [
+          950400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "44fddbaf-a7e9-4da4-8338-8a25b08a535f"
+        ],
+        "dependencies": [],
+        "parent_id": "bb20094e-0b43-4545-8aec-7a93dd29880d",
+        "is_summary": false
+      },
+      "98d29dff-3acf-4634-99e8-98355dc2b099": {
+        "id": "98d29dff-3acf-4634-99e8-98355dc2b099",
+        "name": "Модульное тестирование B",
+        "date_start": "2025-05-21T00:00:00Z",
+        "date_end": "2025-06-05T00:00:00Z",
+        "duration": [
+          1296000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "967c82d1-ce4d-4446-8c32-0a46ae913968"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "60b19daa-6e22-412b-94b1-478d87b764a9",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "cfe5a00a-67fa-4f0f-9663-f9d7256532a6",
+        "is_summary": false
+      },
+      "3a21b506-fdd1-4936-a029-4efe67a0d7e7": {
+        "id": "3a21b506-fdd1-4936-a029-4efe67a0d7e7",
+        "name": "Устранение ошибок",
+        "date_start": "2025-09-10T00:00:00Z",
+        "date_end": "2025-10-05T00:00:00Z",
+        "duration": [
+          2160000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "544b4dd1-29db-452d-acc3-31b94f4ffae0"
+        ],
+        "dependencies": [],
+        "parent_id": "20053c86-4109-495f-813f-835fdcf61b0a",
+        "is_summary": false
+      },
+      "a66e580f-6652-4ab4-a052-bd42ad22cd8a": {
+        "id": "a66e580f-6652-4ab4-a052-bd42ad22cd8a",
+        "name": "Создание WBS",
+        "date_start": "2025-03-01T00:00:00Z",
+        "date_end": "2025-03-10T00:00:00Z",
+        "duration": [
+          777600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "f1e78dff-6ac6-45c9-a0cd-0b32e8e242e8"
+        ],
+        "dependencies": [],
+        "parent_id": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+        "is_summary": false
+      },
+      "fe0a7148-4136-41ab-8ac6-97b980440abc": {
+        "id": "fe0a7148-4136-41ab-8ac6-97b980440abc",
+        "name": "Установка CI/CD",
+        "date_start": "2025-03-21T00:00:00Z",
+        "date_end": "2025-03-30T00:00:00Z",
+        "duration": [
+          777600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "52b8b2e8-a766-4791-a71c-7435e7dbaa29"
+        ],
+        "dependencies": [],
+        "parent_id": "bb20094e-0b43-4545-8aec-7a93dd29880d",
+        "is_summary": false
+      },
+      "eb79ae84-19c8-4f84-a480-b53b84952d49": {
+        "id": "eb79ae84-19c8-4f84-a480-b53b84952d49",
+        "name": "3.3 Модуль B",
+        "date_start": "2025-04-10T00:00:00Z",
+        "date_end": "2025-05-20T00:00:00Z",
+        "duration": [
+          3456000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": "7dee7828-9daa-4179-b0ff-829a7757a010",
+        "is_summary": true
+      },
+      "ffdf9fbf-4b1f-4b41-9871-408d35a25292": {
+        "id": "ffdf9fbf-4b1f-4b41-9871-408d35a25292",
+        "name": "Реализация модуля A (часть 1)",
+        "date_start": "2025-04-06T00:00:00Z",
+        "date_end": "2025-04-25T00:00:00Z",
+        "duration": [
+          1641600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "ee11bfd4-92c6-4823-baa4-374bc2a2ccad"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "fe0a7148-4136-41ab-8ac6-97b980440abc",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "c53394e4-353c-49c7-a05b-7a4de66fe620",
+        "is_summary": false
+      },
+      "4a3ce681-1978-4f76-9b2d-4d0be19ee39a": {
+        "id": "4a3ce681-1978-4f76-9b2d-4d0be19ee39a",
+        "name": "Интеграционное тестирование",
+        "date_start": "2025-06-06T00:00:00Z",
+        "date_end": "2025-06-25T00:00:00Z",
+        "duration": [
+          1641600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "55f18c6c-0dbb-4278-8669-d0dc716d379c"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "1cd87bb9-f08b-454d-9282-264b6bd2785e",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "cfe5a00a-67fa-4f0f-9663-f9d7256532a6",
+        "is_summary": false
+      },
+      "c3b58274-2aac-4cb3-b56d-5657b5aa2b89": {
+        "id": "c3b58274-2aac-4cb3-b56d-5657b5aa2b89",
+        "name": "Анализ требований",
+        "date_start": "2025-02-11T00:00:00Z",
+        "date_end": "2025-02-25T00:00:00Z",
+        "duration": [
+          1209600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "fa334dd9-f784-479d-a95b-c08944a3e8a8"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "9f399a43-9ef8-45a8-9ecc-7805106df713",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+        "is_summary": false
+      },
+      "25093c5d-f243-4850-8ecc-95490028c449": {
+        "id": "25093c5d-f243-4850-8ecc-95490028c449",
+        "name": "Сбор обратной связи",
+        "date_start": "2025-09-02T00:00:00Z",
+        "date_end": "2025-09-15T00:00:00Z",
+        "duration": [
+          1123200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "58a16613-3f16-4237-ac9d-7d9f675f38a5"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "9409de04-8fa5-4a2a-ad8c-4fce2e4f54e5",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "20053c86-4109-495f-813f-835fdcf61b0a",
+        "is_summary": false
+      },
+      "1cd87bb9-f08b-454d-9282-264b6bd2785e": {
+        "id": "1cd87bb9-f08b-454d-9282-264b6bd2785e",
+        "name": "Модульное тестирование A",
+        "date_start": "2025-05-16T00:00:00Z",
+        "date_end": "2025-05-30T00:00:00Z",
+        "duration": [
+          1209600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "034a5adf-4aa2-46d2-8bcf-a98cec0b6371"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "a1c15265-7c08-4701-a069-be338b7c8fcc",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "cfe5a00a-67fa-4f0f-9663-f9d7256532a6",
+        "is_summary": false
+      },
+      "c53394e4-353c-49c7-a05b-7a4de66fe620": {
+        "id": "c53394e4-353c-49c7-a05b-7a4de66fe620",
+        "name": "3.2 Модуль A",
+        "date_start": "2025-04-06T00:00:00Z",
+        "date_end": "2025-05-15T00:00:00Z",
+        "duration": [
+          3369600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": "7dee7828-9daa-4179-b0ff-829a7757a010",
+        "is_summary": true
+      },
+      "4fbffed9-69ee-4942-850a-a7b0b9142c71": {
+        "id": "4fbffed9-69ee-4942-850a-a7b0b9142c71",
+        "name": "Определение целей и ограничений",
+        "date_start": "2025-01-08T00:00:00Z",
+        "date_end": "2025-01-15T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "c7be727f-90fe-4cc9-90fa-fa7437ce8267"
+        ],
+        "dependencies": [],
+        "parent_id": "33296e49-678d-4e81-8d99-1c83b2f13203",
+        "is_summary": false
+      },
+      "439a5cf5-79a4-4786-8fba-c064d69b7fa9": {
+        "id": "439a5cf5-79a4-4786-8fba-c064d69b7fa9",
+        "name": "2. Планирование",
+        "date_start": "2025-01-16T00:00:00Z",
+        "date_end": "2025-03-20T00:00:00Z",
+        "duration": [
+          5443200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "33296e49-678d-4e81-8d99-1c83b2f13203",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": null,
+        "is_summary": true
+      }
+    }
+  },
+  "resource_pool": {
+    "resources": {
+      "856f872b-c4e3-4abe-82bb-dff256ce8855": {
+        "id": "856f872b-c4e3-4abe-82bb-dff256ce8855",
+        "name": "Dev Lead",
+        "rate": 2200.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      },
+      "71a69116-688d-41e0-b2a4-267ec478f5fd": {
+        "id": "71a69116-688d-41e0-b2a4-267ec478f5fd",
+        "name": "Project Manager",
+        "rate": 2500.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": [
+          {
+            "period": {
+              "date_start": "2025-07-15T00:00:00Z",
+              "date_end": "2025-07-25T00:00:00Z"
+            },
+            "exception_type": "Vacation"
+          }
+        ]
+      },
+      "28ca51fd-07ba-4793-80dc-7d4bf62baacf": {
+        "id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "name": "Developer",
+        "rate": 1800.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": [
+          {
+            "period": {
+              "date_start": "2025-12-20T00:00:00Z",
+              "date_end": "2026-01-05T00:00:00Z"
+            },
+            "exception_type": "Vacation"
+          }
+        ]
+      },
+      "11db85c6-f9f8-49fc-9059-33f7dd52d95c": {
+        "id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "name": "Business Analyst",
+        "rate": 2000.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      },
+      "ce98e86a-5a0d-4e64-921c-752a3fce999f": {
+        "id": "ce98e86a-5a0d-4e64-921c-752a3fce999f",
+        "name": "DevOps",
+        "rate": 1900.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      },
+      "36554120-8d1a-4a6c-8017-32b51a481029": {
+        "id": "36554120-8d1a-4a6c-8017-32b51a481029",
+        "name": "Tester",
+        "rate": 1600.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      }
+    },
+    "allocations": {
+      "d4ca1c14-6aec-431a-b613-f4ebeda5675f": {
+        "id": "d4ca1c14-6aec-431a-b613-f4ebeda5675f",
+        "resource_id": "856f872b-c4e3-4abe-82bb-dff256ce8855",
+        "task_id": "3c859147-8bc6-4aaf-b5e5-c19739b16b04",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.6,
+        "time_window": {
+          "date_start": "2025-02-26T00:00:00Z",
+          "date_end": "2025-03-15T00:00:00Z"
+        }
+      },
+      "ee11bfd4-92c6-4823-baa4-374bc2a2ccad": {
+        "id": "ee11bfd4-92c6-4823-baa4-374bc2a2ccad",
+        "resource_id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "task_id": "ffdf9fbf-4b1f-4b41-9871-408d35a25292",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-04-06T00:00:00Z",
+          "date_end": "2025-04-25T00:00:00Z"
+        }
+      },
+      "f6c29a6c-35c7-40e0-b3ba-3360926e0140": {
+        "id": "f6c29a6c-35c7-40e0-b3ba-3360926e0140",
+        "resource_id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "task_id": "77786a04-2b47-46a8-9271-11a329b9d4c9",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2025-07-15T00:00:00Z",
+          "date_end": "2025-08-05T00:00:00Z"
+        }
+      },
+      "44fddbaf-a7e9-4da4-8338-8a25b08a535f": {
+        "id": "44fddbaf-a7e9-4da4-8338-8a25b08a535f",
+        "resource_id": "ce98e86a-5a0d-4e64-921c-752a3fce999f",
+        "task_id": "7c3bace5-53f8-4911-8b84-e76559c9a73e",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2025-03-25T00:00:00Z",
+          "date_end": "2025-04-05T00:00:00Z"
+        }
+      },
+      "fa334dd9-f784-479d-a95b-c08944a3e8a8": {
+        "id": "fa334dd9-f784-479d-a95b-c08944a3e8a8",
+        "resource_id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "task_id": "c3b58274-2aac-4cb3-b56d-5657b5aa2b89",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.6,
+        "time_window": {
+          "date_start": "2025-02-11T00:00:00Z",
+          "date_end": "2025-02-25T00:00:00Z"
+        }
+      },
+      "544b4dd1-29db-452d-acc3-31b94f4ffae0": {
+        "id": "544b4dd1-29db-452d-acc3-31b94f4ffae0",
+        "resource_id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "task_id": "3a21b506-fdd1-4936-a029-4efe67a0d7e7",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.4,
+        "time_window": {
+          "date_start": "2025-09-10T00:00:00Z",
+          "date_end": "2025-10-05T00:00:00Z"
+        }
+      },
+      "58a16613-3f16-4237-ac9d-7d9f675f38a5": {
+        "id": "58a16613-3f16-4237-ac9d-7d9f675f38a5",
+        "resource_id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "task_id": "25093c5d-f243-4850-8ecc-95490028c449",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.2,
+        "time_window": {
+          "date_start": "2025-09-02T00:00:00Z",
+          "date_end": "2025-09-15T00:00:00Z"
+        }
+      },
+      "f7f03b97-4c06-4973-8675-5481a512e3aa": {
+        "id": "f7f03b97-4c06-4973-8675-5481a512e3aa",
+        "resource_id": "ce98e86a-5a0d-4e64-921c-752a3fce999f",
+        "task_id": "8c8573cf-c114-429a-88ec-603874a14e7f",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-10-06T00:00:00Z",
+          "date_end": "2025-11-01T00:00:00Z"
+        }
+      },
+      "8aa1c007-93fd-44d4-be31-083683a2f342": {
+        "id": "8aa1c007-93fd-44d4-be31-083683a2f342",
+        "resource_id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "task_id": "9f399a43-9ef8-45a8-9ecc-7805106df713",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.8,
+        "time_window": {
+          "date_start": "2025-01-16T00:00:00Z",
+          "date_end": "2025-02-10T00:00:00Z"
+        }
+      },
+      "f1e78dff-6ac6-45c9-a0cd-0b32e8e242e8": {
+        "id": "f1e78dff-6ac6-45c9-a0cd-0b32e8e242e8",
+        "resource_id": "856f872b-c4e3-4abe-82bb-dff256ce8855",
+        "task_id": "a66e580f-6652-4ab4-a052-bd42ad22cd8a",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-03-01T00:00:00Z",
+          "date_end": "2025-03-10T00:00:00Z"
+        }
+      },
+      "5360de82-f667-43b7-a1e1-2bbc0d019ca3": {
+        "id": "5360de82-f667-43b7-a1e1-2bbc0d019ca3",
+        "resource_id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "task_id": "327fad7a-1034-46de-834d-6c604bae91d8",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-04-10T00:00:00Z",
+          "date_end": "2025-04-30T00:00:00Z"
+        }
+      },
+      "6ed2ecf9-bc9e-4801-a6c5-ea1996b31961": {
+        "id": "6ed2ecf9-bc9e-4801-a6c5-ea1996b31961",
+        "resource_id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "task_id": "a1c15265-7c08-4701-a069-be338b7c8fcc",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-04-26T00:00:00Z",
+          "date_end": "2025-05-15T00:00:00Z"
+        }
+      },
+      "034a5adf-4aa2-46d2-8bcf-a98cec0b6371": {
+        "id": "034a5adf-4aa2-46d2-8bcf-a98cec0b6371",
+        "resource_id": "36554120-8d1a-4a6c-8017-32b51a481029",
+        "task_id": "1cd87bb9-f08b-454d-9282-264b6bd2785e",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.25,
+        "time_window": {
+          "date_start": "2025-05-16T00:00:00Z",
+          "date_end": "2025-05-30T00:00:00Z"
+        }
+      },
+      "f85495ca-ab0d-4925-bfce-13ae6ed7eb42": {
+        "id": "f85495ca-ab0d-4925-bfce-13ae6ed7eb42",
+        "resource_id": "ce98e86a-5a0d-4e64-921c-752a3fce999f",
+        "task_id": "9409de04-8fa5-4a2a-ad8c-4fce2e4f54e5",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.6,
+        "time_window": {
+          "date_start": "2025-08-21T00:00:00Z",
+          "date_end": "2025-09-01T00:00:00Z"
+        }
+      },
+      "52b8b2e8-a766-4791-a71c-7435e7dbaa29": {
+        "id": "52b8b2e8-a766-4791-a71c-7435e7dbaa29",
+        "resource_id": "ce98e86a-5a0d-4e64-921c-752a3fce999f",
+        "task_id": "fe0a7148-4136-41ab-8ac6-97b980440abc",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2025-03-21T00:00:00Z",
+          "date_end": "2025-03-30T00:00:00Z"
+        }
+      },
+      "e3832696-4a3c-44d5-8191-4e40e7263c0f": {
+        "id": "e3832696-4a3c-44d5-8191-4e40e7263c0f",
+        "resource_id": "71a69116-688d-41e0-b2a4-267ec478f5fd",
+        "task_id": "284eb808-03ee-4732-9737-9e6c70d25e0f",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2025-01-02T00:00:00Z",
+          "date_end": "2025-01-10T00:00:00Z"
+        }
+      },
+      "4f71bbfe-5c7b-49b5-9761-b147df5f3335": {
+        "id": "4f71bbfe-5c7b-49b5-9761-b147df5f3335",
+        "resource_id": "71a69116-688d-41e0-b2a4-267ec478f5fd",
+        "task_id": "652a615b-1e09-4c3f-9288-efe3f102c1c9",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-01-05T00:00:00Z",
+          "date_end": "2025-01-12T00:00:00Z"
+        }
+      },
+      "5792b555-ca0e-4691-b8a5-12c39929b0e5": {
+        "id": "5792b555-ca0e-4691-b8a5-12c39929b0e5",
+        "resource_id": "71a69116-688d-41e0-b2a4-267ec478f5fd",
+        "task_id": "d1b74afd-fd17-44ff-b438-3f6ec53a1f6f",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.1,
+        "time_window": {
+          "date_start": "2025-03-11T00:00:00Z",
+          "date_end": "2025-03-20T00:00:00Z"
+        }
+      },
+      "55f18c6c-0dbb-4278-8669-d0dc716d379c": {
+        "id": "55f18c6c-0dbb-4278-8669-d0dc716d379c",
+        "resource_id": "36554120-8d1a-4a6c-8017-32b51a481029",
+        "task_id": "4a3ce681-1978-4f76-9b2d-4d0be19ee39a",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.25,
+        "time_window": {
+          "date_start": "2025-06-06T00:00:00Z",
+          "date_end": "2025-06-25T00:00:00Z"
+        }
+      },
+      "e034a7de-3a84-45a7-b06a-53d73f2e65e6": {
+        "id": "e034a7de-3a84-45a7-b06a-53d73f2e65e6",
+        "resource_id": "36554120-8d1a-4a6c-8017-32b51a481029",
+        "task_id": "daad8446-5d88-4f71-99bc-14ee526c03a3",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.25,
+        "time_window": {
+          "date_start": "2025-06-26T00:00:00Z",
+          "date_end": "2025-07-10T00:00:00Z"
+        }
+      },
+      "c7be727f-90fe-4cc9-90fa-fa7437ce8267": {
+        "id": "c7be727f-90fe-4cc9-90fa-fa7437ce8267",
+        "resource_id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "task_id": "4fbffed9-69ee-4942-850a-a7b0b9142c71",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.7,
+        "time_window": {
+          "date_start": "2025-01-08T00:00:00Z",
+          "date_end": "2025-01-15T00:00:00Z"
+        }
+      },
+      "c1f1accb-e6e5-4230-9065-884440f28dcd": {
+        "id": "c1f1accb-e6e5-4230-9065-884440f28dcd",
+        "resource_id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "task_id": "2befda6f-808c-4be3-a062-76cc71fd1a2b",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2025-08-01T00:00:00Z",
+          "date_end": "2025-08-20T00:00:00Z"
+        }
+      },
+      "460b5993-09a7-4727-9add-488858938347": {
+        "id": "460b5993-09a7-4727-9add-488858938347",
+        "resource_id": "28ca51fd-07ba-4793-80dc-7d4bf62baacf",
+        "task_id": "60b19daa-6e22-412b-94b1-478d87b764a9",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.1,
+        "time_window": {
+          "date_start": "2025-05-01T00:00:00Z",
+          "date_end": "2025-05-20T00:00:00Z"
+        }
+      },
+      "967c82d1-ce4d-4446-8c32-0a46ae913968": {
+        "id": "967c82d1-ce4d-4446-8c32-0a46ae913968",
+        "resource_id": "36554120-8d1a-4a6c-8017-32b51a481029",
+        "task_id": "98d29dff-3acf-4634-99e8-98355dc2b099",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.25,
+        "time_window": {
+          "date_start": "2025-05-21T00:00:00Z",
+          "date_end": "2025-06-05T00:00:00Z"
+        }
+      },
+      "2e7606b6-656e-4ffa-a401-3e05ea19d71e": {
+        "id": "2e7606b6-656e-4ffa-a401-3e05ea19d71e",
+        "resource_id": "11db85c6-f9f8-49fc-9059-33f7dd52d95c",
+        "task_id": "a524856b-f749-4a70-b819-d0799bff06c3",
+        "project_id": "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec",
+        "engagement_rate": 0.4,
+        "time_window": {
+          "date_start": "2025-07-01T00:00:00Z",
+          "date_end": "2025-07-20T00:00:00Z"
+        }
+      }
+    }
+  },
+  "calendars": {
+    "a4d2f4c6-c1d4-4739-b22e-cf72b2c306ec": {
+      "working_days": [
+        "Wed",
+        "Thu",
+        "Mon",
+        "Tue",
+        "Fri"
+      ],
+      "holidays": [],
+      "working_hours_per_day": 8
+    }
+  }
+}

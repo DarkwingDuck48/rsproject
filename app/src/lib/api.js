@@ -104,20 +104,22 @@ export function addTask(name, dateStart, dateEnd, isSummary, parentId) {
 }
 
 /**
- * Обновление задачи. Все поля опциональны (null = не менять).
+ * Обновление задачи. Все поля опциональны (null/undefined = не менять).
  * Поля DTO (`task_update`) — snake_case, т.к. десериализуются serde
  * по именам полей `TaskUpdateDto`.
  *
- * `parent_id` нельзя сбросить в корень (ограничение сериализации
- * `Option<Option<Uuid>>` на бэкенде) — передаём только новый родитель.
+ * Сброс родителя в корень (задача 5.20): передайте `parentCleared: true`,
+ * чтобы очистить `parent_id`. Не передавайте `parentId` и `parentCleared`
+ * одновременно — бэкенд вернёт ошибку.
  *
  * @param {string}   taskId
  * @param {Object}   update
  * @param {?string}  update.name
  * @param {?string}  update.dateStart
  * @param {?string}  update.dateEnd
- * @param {?string}  update.status     - TaskStatus
- * @param {?string}  update.parentId   - UUID нового родителя
+ * @param {?string}  update.status         - TaskStatus
+ * @param {?string}  [update.parentId]     - UUID нового родителя (не вместе с parentCleared)
+ * @param {boolean}  [update.parentCleared] - true — сбросить родителя в корень
  */
 export function editTask(taskId, update) {
   return invoke("edit_task", {
@@ -128,6 +130,7 @@ export function editTask(taskId, update) {
       date_end: update.dateEnd,
       status: update.status,
       parent_id: update.parentId,
+      parent_cleared: update.parentCleared,
     },
   });
 }

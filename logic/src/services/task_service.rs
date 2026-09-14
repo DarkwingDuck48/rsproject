@@ -169,14 +169,18 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
     }
 
     pub fn get_root_tasks(&self, project_id: Uuid) -> Vec<&Task> {
-        self.container
+        let mut tasks: Vec<&Task> = self
+            .container
             .get_project(&project_id)
             .map(|p| p.tasks.values().filter(|t| t.parent_id.is_none()).collect())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        tasks.sort_by_key(|t| t.date_start);
+        tasks
     }
 
     pub fn get_subtasks(&self, project_id: &Uuid, parent_id: Uuid) -> Vec<&Task> {
-        self.container
+        let mut subtask: Vec<&Task> = self
+            .container
             .get_project(project_id)
             .map(|p| {
                 p.tasks
@@ -184,7 +188,9 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
                     .filter(|t| t.parent_id == Some(parent_id))
                     .collect()
             })
-            .unwrap_or_default()
+            .unwrap_or_default();
+        subtask.sort_by_key(|t| t.date_start);
+        subtask
     }
 
     pub fn get_task_allocations(&self, project_id: &Uuid, parent_id: Uuid) -> Vec<Uuid> {
@@ -223,6 +229,23 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         let project_start_date = *project.get_date_start();
         let project_end_date = *project.get_date_end();
 
+        if let Some(new_parent_id) = parent_id.flatten() {
+            let mut current = new_parent_id;
+            loop {
+                if current == task_id {
+                    anyhow::bail!("Cannot make a task a child of its own descendant (cycle)");
+                }
+                let parent = project
+                    .tasks
+                    .get(&current)
+                    .ok_or_else(|| anyhow::anyhow!("Task not found"))?;
+                match parent.parent_id {
+                    Some(pid) => current = pid,
+                    None => break, // дошли до корня — цикла нет
+                }
+            }
+        }
+
         let task = project
             .tasks
             .get_mut(&task_id)
@@ -231,6 +254,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         if let Some(n) = name {
             task.name = n;
         }
+
         // Может быть Some(None) - Тогда должны будем очистить родителя
         // None -> Ничего не делаем, поле не менялось
         // Some(UUID) -> заменяем значение

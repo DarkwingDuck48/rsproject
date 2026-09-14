@@ -49,7 +49,13 @@ export default function EditProjectDialog({ open, project, onClose, onSaved }) {
   }
 
   return (
-    <Modal open={open} title="Редактирование проекта" footer={null} destroyOnHidden>
+    <Modal
+      open={open}
+      title="Редактирование проекта"
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <Form
         layout="vertical"
         initialValues={{

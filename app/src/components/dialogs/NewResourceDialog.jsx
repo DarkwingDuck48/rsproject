@@ -39,7 +39,13 @@ export default function NewResourceDialog({ open, onClose, onCreated }) {
   }
 
   return (
-    <Modal open={open} title="Новый ресурс" footer={null} destroyOnHidden>
+    <Modal
+      open={open}
+      title="Новый ресурс"
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <Form layout="vertical" onFinish={handleFinish}>
         <Form.Item
           name="name"

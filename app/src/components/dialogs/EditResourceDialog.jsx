@@ -52,6 +52,7 @@ export default function EditResourceDialog({
     <Modal
       open={open}
       title={`Ресурс: ${resource?.name ?? ""}`}
+      onCancel={onClose}
       footer={null}
       destroyOnHidden
     >

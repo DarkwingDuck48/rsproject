@@ -15,7 +15,7 @@ import {
 } from "antd";
 import { DeleteOutlined, PlusOutlined, SaveOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDependency, editTask, removeDependency } from "../../lib/api";
 import {
   DEPENDENCY_TYPE_LABELS,
@@ -61,6 +61,33 @@ function findTaskName(nodes, id) {
 }
 
 /**
+ * Собирает ID узла и всех его потомков (поддерево).
+ * Нужно для исключения потомков из выбора родителя: задачу нельзя
+ * сделать родителем её же предка — иначе получится цикл (задача 5.20).
+ * @param {TaskTreeNode} node
+ * @param {Set<string>} out
+ */
+function collectSubtreeIds(node, out) {
+  out.add(node.task.id);
+  node.children.forEach((child) => collectSubtreeIds(child, out));
+}
+
+/**
+ * Ищет узел по ID в дереве задач.
+ * @param {TaskTreeNode[]} nodes
+ * @param {string} id
+ * @returns {?TaskTreeNode}
+ */
+function findSubtree(nodes, id) {
+  for (const node of nodes) {
+    if (node.task.id === id) return node;
+    const found = findSubtree(node.children, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
  * Диалог просмотра и редактирования задачи: параметры + управление зависимостями.
  *
  * @param {Object}   props
@@ -83,11 +110,21 @@ export default function TaskDetailsDialog({
   const [depLag, setDepLag] = useState(null);
 
   const dependencies = task?.dependencies ?? [];
-  // Задачи, недоступные для выбора родителем/предшественником
+  // Задачи, недоступные для выбора предшественником
   const excludeIds = [
     task?.id,
     ...dependencies.map((dep) => dep.depends_on),
   ].filter(Boolean);
+
+  // Родителем нельзя выбрать саму задачу и её потомков — иначе цикл (5.20).
+  const parentExcludeIds = useMemo(() => {
+    if (!task) return [];
+    const subtree = findSubtree(taskTree, task.id);
+    if (!subtree) return [task.id];
+    const ids = new Set();
+    collectSubtreeIds(subtree, ids);
+    return [...ids];
+  }, [task?.id, taskTree]);
 
   // При открытии сбрасываем поля «добавить зависимость»
   useEffect(() => {
@@ -118,6 +155,17 @@ export default function TaskDetailsDialog({
 
     setSaving(true);
     try {
+      // 5.20: отличаем «сменить родителя» от «сбросить в корень».
+      // Ни родителя не было, ни пользователь его не трогал — поле не шлём.
+      const initialParentId = task?.parent_id ?? null;
+      const newParentId = values.parent_id ?? null;
+      let parentPayload = {};
+      if (newParentId !== null) {
+        parentPayload = { parentId: newParentId };
+      } else if (initialParentId !== null) {
+        parentPayload = { parentCleared: true };
+      }
+
       await editTask(task.id, {
         name: values.name,
         // Сводные задачи даты не имеют — бэкенд отклоняет их установку
@@ -128,7 +176,7 @@ export default function TaskDetailsDialog({
           ? null
           : dayjs(values.date_end).format(DATE_FORMAT),
         status: values.status,
-        parentId: values.parent_id || null,
+        ...parentPayload,
       });
       message.success("Задача обновлена");
       onClose();
@@ -170,6 +218,7 @@ export default function TaskDetailsDialog({
     <Modal
       open={open}
       title={task ? `Задача: ${task.name}` : "Задача"}
+      onCancel={onClose}
       footer={null}
     >
       <Form
@@ -226,7 +275,7 @@ export default function TaskDetailsDialog({
           <TreeSelect
             allowClear
             placeholder="Корневая (без родителя)"
-            treeData={toTreeData(taskTree, [task?.id])}
+            treeData={toTreeData(taskTree, parentExcludeIds)}
             treeNodeLabelProp="label"
             fieldNames={{
               value: "value",

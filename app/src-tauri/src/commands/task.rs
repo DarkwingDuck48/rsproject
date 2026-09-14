@@ -15,11 +15,20 @@ impl TryFrom<TaskUpdateDto> for TaskUpdate {
     fn try_from(dto: TaskUpdateDto) -> Result<Self, Self::Error> {
         let start = dto.date_start.as_deref().map(parse_date).transpose()?;
         let end = dto.date_end.as_deref().map(parse_date).transpose()?;
+        let parent_id = match (dto.parent_id, dto.parent_cleared) {
+            (Some(_), true) => {
+                return Err("Нельзя одновременно указать родителя и сбросить его".into());
+            }
+            (Some(id), false) => Some(Some(id)),
+            (None, true) => Some(None),
+            (None, false) => None,
+        };
+
         Ok(TaskUpdate {
             name: dto.name,
             start,
             end,
-            parent_id: dto.parent_id,
+            parent_id,
             status: dto.status,
         })
     }
@@ -135,7 +144,6 @@ pub fn get_tasks(
             TaskInfo::from_task(t, cost)
         })
         .collect();
-
     Ok(task_info)
 }
 
@@ -144,7 +152,8 @@ fn build_node(
     project_id: &Uuid,
     task: &Task,
 ) -> TaskTreeNode {
-    let subtasks = task_service.get_subtasks(project_id, *task.get_id());
+    let mut subtasks = task_service.get_subtasks(project_id, *task.get_id());
+    subtasks.sort_by_key(|st| st.date_start);
     let children = subtasks
         .iter()
         .map(|t| build_node(task_service, project_id, t))
@@ -165,7 +174,8 @@ pub fn get_task_tree(
     let project_id = resolve_project_id(&state, project_id)?;
     let mut container = state.container();
     let task_service = TaskService::new(&mut *container);
-    let roots = task_service.get_root_tasks(project_id);
+    let mut roots = task_service.get_root_tasks(project_id);
+    roots.sort_by_key(|r| r.date_start);
     Ok(roots
         .iter()
         .map(|t| build_node(&task_service, &project_id, t))
@@ -289,4 +299,58 @@ pub fn remove_assignment(
         .remove_allocation(&project_id, &task_id, allocation_id)
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Валидная DTO без изменений родителя.
+    fn empty_dto() -> TaskUpdateDto {
+        TaskUpdateDto {
+            name: None,
+            date_start: None,
+            date_end: None,
+            status: None,
+            parent_id: None,
+            parent_cleared: false,
+        }
+    }
+
+    #[test]
+    fn try_from_rejects_parent_and_clear_together() {
+        let dto = TaskUpdateDto {
+            parent_cleared: true,
+            parent_id: Some(uuid::Uuid::new_v4()),
+            ..empty_dto()
+        };
+        assert!(TaskUpdate::try_from(dto).is_err());
+    }
+
+    #[test]
+    fn try_from_maps_set_parent() {
+        let parent_id = uuid::Uuid::new_v4();
+        let dto = TaskUpdateDto {
+            parent_id: Some(parent_id),
+            ..empty_dto()
+        };
+        let update = TaskUpdate::try_from(dto).expect("valid dto");
+        assert_eq!(update.parent_id, Some(Some(parent_id)));
+    }
+
+    #[test]
+    fn try_from_maps_clear_parent() {
+        let dto = TaskUpdateDto {
+            parent_cleared: true,
+            ..empty_dto()
+        };
+        let update = TaskUpdate::try_from(dto).expect("valid dto");
+        assert_eq!(update.parent_id, Some(None));
+    }
+
+    #[test]
+    fn try_from_defaults_to_no_change() {
+        let update = TaskUpdate::try_from(empty_dto()).expect("valid dto");
+        assert_eq!(update.parent_id, None);
+    }
 }

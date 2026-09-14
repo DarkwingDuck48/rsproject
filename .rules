@@ -6,6 +6,7 @@
 - Следуй Best Practice при написании кода
 - **Текущий стрим (5):** Миграция с EGui на Tauri v2
 - **Главная цель стрима 5:** научиться использовать Tauri в проектах на Rust
+- Когда я буду готов сделать релиз - править файл `./CHANGELOG.md`
 
 ## Структура проекта
 - Cargo workspace из двух крейтов: `app` (Tauri) и `logic`
@@ -42,6 +43,7 @@
   - `scheduler.rs` — планировщик (расчёт дат, критического пути)
   - `task_service.rs` — сервис задач
   - `resource_service.rs` — сервис ресурсов (проверка доступности)
+- `examples/` — демо-примеры (восстановлены из EGui-эпохи, 5.23): `demo_project.rs`, `big_project.rs` + готовые JSON в `examples/data/` для загрузки через «Файл → Открыть проект»
 
 ## Архитектура `app` (Tauri v2)
 - `src-tauri/` — Rust-бекенд:
@@ -65,6 +67,7 @@
   - `components/views/` — ProjectView (просмотр/редактирование проекта, 5.11), TasksView (дерево задач + CRUD, 5.12), ResourcesView (таблица ресурсов + периоды недоступности, 5.13), GanttView (SVG-диаграмма: полосы задач по дням, зависимости-стрелки, подсветка критического пути, тултипы, гориз. скролл, 5.15)
   - `components/dialogs/` — 9 диалогов (5.14): About, New/EditProject, CloseProject, NewTask/TaskDetails, New/EditResource, AssignResource, UnavailablePeriod + общие `ProjectFormFields`
   - `hooks/` — кастомные React-хуки: `useTheme` (темизация, 5.16), `useHotkey` (горячие клавиши, 5.17)
+  - `context/` — React-контексты: `SelectionContext` (общее выделение задач/ресурсов для SidePanel и вьюх, 5.21)
   - `types/` — JSDoc-типы, документирующие структуры `logic`
   - `lib/` — обёртки над `invoke()` для вызова Tauri-команд: `api.js` (все команды), `options.js` (лейблы enum'ов), `format.js` (даты/плюрализация/дата-время), `constants.js` (версия, ссылка на репо), `errors.js` (различение «проект не выбран» от реальных ошибок)
 - `index.html` — точка входа WebView

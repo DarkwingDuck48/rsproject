@@ -4,6 +4,7 @@ import CentralPanel from "./components/layout/CentralPanel";
 import SidePanel from "./components/layout/SidePanel";
 import StatusBar from "./components/layout/StatusBar";
 import TopPanel from "./components/layout/TopPanel";
+import { SelectionProvider } from "./context/SelectionContext";
 import { useTheme } from "./hooks/useTheme";
 import "./App.css";
 
@@ -42,23 +43,25 @@ function App() {
 
   return (
     <ConfigProvider theme={APP_THEMES[themeMode]}>
-      <div className="app" data-theme={themeMode}>
-        <TopPanel
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onDataChange={onDataChange}
-          themeMode={themeMode}
-          onThemeToggle={toggleTheme}
-          onProjectSaved={() => setLastSavedAt(new Date())}
-        />
-        <SidePanel activeTab={activeTab} dataVersion={dataVersion} />
-        <CentralPanel
-          activeTab={activeTab}
-          dataVersion={dataVersion}
-          onDataChange={onDataChange}
-        />
-        <StatusBar dataVersion={dataVersion} lastSavedAt={lastSavedAt} />
-      </div>
+      <SelectionProvider>
+        <div className="app" data-theme={themeMode}>
+          <TopPanel
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onDataChange={onDataChange}
+            themeMode={themeMode}
+            onThemeToggle={toggleTheme}
+            onProjectSaved={() => setLastSavedAt(new Date())}
+          />
+          <SidePanel activeTab={activeTab} dataVersion={dataVersion} />
+          <CentralPanel
+            activeTab={activeTab}
+            dataVersion={dataVersion}
+            onDataChange={onDataChange}
+          />
+          <StatusBar dataVersion={dataVersion} lastSavedAt={lastSavedAt} />
+        </div>
+      </SelectionProvider>
     </ConfigProvider>
   );
 }

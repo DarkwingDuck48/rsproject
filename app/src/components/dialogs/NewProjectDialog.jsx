@@ -53,7 +53,13 @@ export default function NewProjectDialog({ open, onClose, onCreated }) {
   }
 
   return (
-    <Modal open={open} title="Новый проект" footer={null} destroyOnHidden>
+    <Modal
+      open={open}
+      title="Новый проект"
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <Form layout="vertical" onFinish={handleFinish}>
         <ProjectFormFields />
         <Form.Item>
