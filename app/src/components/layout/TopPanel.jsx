@@ -22,8 +22,11 @@ import CloseProjectDialog from "../dialogs/CloseProjectDialog";
 import NewProjectDialog from "../dialogs/NewProjectDialog";
 
 /**
- * Верхняя панель приложения: меню «Файл»/«Помощь» и переключатель вкладок.
- * Меню «Файл» управляет проектами (диалоги/команды), «Помощь» — справка.
+ * Верхняя панель приложения. Состоит из двух рядов, как в классических
+ * десктоп-приложениях:
+ *  — меню-бар: бренд + меню «Файл»/«Справка» (общие пункты программы);
+ *  — панель вкладок: навигация по разделам приложения (Проект/Задачи/…).
+ * Меню «Файл» управляет проектами (диалоги/команды), «Справка» — справка.
  *
  * @param {Object}   props
  * @param {string}   props.activeTab          - Текущая активная вкладка (TabKey).
@@ -140,48 +143,54 @@ export default function TopPanel({
 
   return (
     <header className="app-top-panel">
-      <div className="app-top-panel__brand">
-        <span className="app-top-panel__brand-name">RS Project</span>
+      {/* Ряд 1 — меню-бар: общие пункты программы + переключатель темы. */}
+      <div className="app-top-panel__menu-bar">
+        <div className="app-top-panel__brand">
+          <span className="app-top-panel__brand-name">RS Project</span>
+        </div>
+
+        <Dropdown
+          menu={{ items: fileMenuItems, onClick: ({ key }) => onFileMenu(key) }}
+          trigger={["click"]}
+        >
+          <Button type="text" className="app-top-panel__menu-button">
+            Файл
+          </Button>
+        </Dropdown>
+
+        <Dropdown
+          menu={{ items: helpMenuItems, onClick: ({ key }) => onHelpMenu(key) }}
+          trigger={["click"]}
+        >
+          <Button type="text" className="app-top-panel__menu-button">
+            Справка
+          </Button>
+        </Dropdown>
+
+        <Button
+          type="text"
+          className="app-top-panel__theme-toggle"
+          icon={themeMode === "dark" ? <SunOutlined /> : <MoonOutlined />}
+          title={
+            themeMode === "dark"
+              ? "Включить светлую тему"
+              : "Включить тёмную тему"
+          }
+          aria-label={themeMode === "dark" ? "Светлая тема" : "Тёмная тема"}
+          onClick={onThemeToggle}
+        />
       </div>
 
-      <Dropdown
-        menu={{ items: fileMenuItems, onClick: ({ key }) => onFileMenu(key) }}
-        trigger={["click"]}
-      >
-        <Button type="text" className="app-top-panel__menu-button">
-          Файл
-        </Button>
-      </Dropdown>
-
-      <Dropdown
-        menu={{ items: helpMenuItems, onClick: ({ key }) => onHelpMenu(key) }}
-        trigger={["click"]}
-      >
-        <Button type="text" className="app-top-panel__menu-button">
-          Помощь
-        </Button>
-      </Dropdown>
-
-      <Menu
-        className="app-top-panel__tabs"
-        mode="horizontal"
-        items={tabMenuItems}
-        selectedKeys={[activeTab]}
-        onClick={({ key }) => onTabChange(key)}
-      />
-
-      <Button
-        type="text"
-        className="app-top-panel__theme-toggle"
-        icon={themeMode === "dark" ? <SunOutlined /> : <MoonOutlined />}
-        title={
-          themeMode === "dark"
-            ? "Включить светлую тему"
-            : "Включить тёмную тему"
-        }
-        aria-label={themeMode === "dark" ? "Светлая тема" : "Тёмная тема"}
-        onClick={onThemeToggle}
-      />
+      {/* Ряд 2 — панель вкладок: разделы приложения. */}
+      <nav className="app-top-panel__tab-bar">
+        <Menu
+          className="app-top-panel__tabs"
+          mode="horizontal"
+          items={tabMenuItems}
+          selectedKeys={[activeTab]}
+          onClick={({ key }) => onTabChange(key)}
+        />
+      </nav>
 
       <NewProjectDialog
         open={newProjectOpen}

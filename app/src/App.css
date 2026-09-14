@@ -16,7 +16,9 @@
     --app-border: #e5e5e5;
     --app-accent: #1677ff;
 
-    --app-top-height: 56px;
+    --app-top-height: 82px; /* меню-бар 36px + панель вкладок 46px */
+    --app-menu-height: 36px;
+    --app-tab-height: 46px;
     --app-side-width: 240px;
     --app-status-height: 30px;
 }
@@ -70,20 +72,27 @@ body,
 }
 
 /* ─────────── TopPanel ─────────── */
+/* Два ряда: меню-бар (Файл/Справка) и панель вкладок (разделы приложения). */
 .app-top-panel {
     grid-area: top;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 16px;
+    flex-direction: column;
     background: var(--app-bg-panel);
     border-bottom: 1px solid var(--app-border);
+}
+
+.app-top-panel__menu-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: var(--app-menu-height);
+    padding: 0 16px;
 }
 
 .app-top-panel__brand {
     display: flex;
     align-items: center;
-    margin-right: 8px;
+    margin-right: 12px;
 }
 
 .app-top-panel__brand-name {
@@ -95,6 +104,15 @@ body,
 
 .app-top-panel__menu-button {
     color: var(--app-text-primary);
+    border-radius: 4px;
+}
+
+.app-top-panel__tab-bar {
+    display: flex;
+    align-items: center;
+    height: var(--app-tab-height);
+    padding: 0 12px;
+    border-top: 1px solid var(--app-border);
 }
 
 .app-top-panel__tabs {
@@ -105,6 +123,7 @@ body,
 
 .app-top-panel__theme-toggle {
     color: var(--app-text-secondary);
+    margin-left: auto;
 }
 
 /* ─────────── SidePanel ─────────── */
