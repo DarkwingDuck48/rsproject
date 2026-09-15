@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   test:
@@ -12,5 +12,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+
+      # Зависимости для сборки Tauri v2 на Linux (webkit2gtk и т.д.).
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+
+      # Фронтенд собирается в `app/dist`, который эмбедится в бинарь
+      # через tauri::generate_context!() — без него приложение пустое.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Build frontend
+        working-directory: app
+        run: |
+          npm ci
+          npm run build
+
       - run: cargo test --workspace
       - run: cargo build --release --workspace

@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.1"
+version.workspace = true
 description = "RS Project app"
 edition = "2024"
 
@@ -13,6 +13,12 @@ edition = "2024"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[[bin]]
+# Имя бинарника — `rsproject` (совпадает с .rules и артефактами release.yml).
+# Пакет называется `app`, поэтому по умолчанию cargo собрал бы `app.exe`.
+name = "rsproject"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2.5", features = [] }
 
@@ -21,7 +27,7 @@ tauri = { version = "2.5", features = [] }
 tauri-plugin-opener = "2.5"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-logic = { version = "0.1.0", path = "../../logic" }
+logic = { version = "0.1.1", path = "../../logic" }
 anyhow.workspace = true
 thiserror.workspace = true
 chrono = { workspace = true, features = ["serde"] }
