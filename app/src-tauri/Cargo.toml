@@ -22,6 +22,14 @@ path = "src/main.rs"
 [build-dependencies]
 tauri-build = { version = "2.5", features = [] }
 
+[features]
+# Фича включает production-режим Tauri: встроенные ассеты фронтенда
+# (frontendDist) вместо devUrl. Без неё даже --release собирает dev-бинарь,
+# который пытается загрузить страницу с http://localhost:1420.
+# Скаффолд Tauri v2 генерирует эту фичу по умолчанию; здесь она была
+# потеряна при переезде с EGui на Tauri.
+custom-protocol = ["tauri/custom-protocol"]
+
 [dependencies]
 tauri = { version = "2.5", features = [] }
 tauri-plugin-opener = "2.5"
