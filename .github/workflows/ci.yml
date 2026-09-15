@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
 
       # Зависимости для сборки Tauri v2 на Linux (webkit2gtk и т.д.).
@@ -21,7 +21,7 @@ jobs:
 
       # Фронтенд собирается в `app/dist`, который эмбедится в бинарь
       # через tauri::generate_context!() — без него приложение пустое.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
