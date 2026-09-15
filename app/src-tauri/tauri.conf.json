@@ -14,7 +14,9 @@
       {
         "title": "app",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "minWidth": 640,
+        "minHeight": 480
       }
     ],
     "security": {

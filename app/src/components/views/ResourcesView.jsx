@@ -197,6 +197,9 @@ export default function ResourcesView({ dataVersion, onDataChange }) {
             onChange: (keys) => selectResource(keys.length ? keys[0] : null),
           }}
           pagination={false}
+          // Колонка с тегами периодов бывает широкой: не сжимаем её,
+          // а даём таблице горизонтальный скролл (ресайзинг, 5.24).
+          scroll={{ x: "max-content" }}
         />
       )}
 

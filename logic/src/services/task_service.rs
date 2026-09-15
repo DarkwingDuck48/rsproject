@@ -169,18 +169,14 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
     }
 
     pub fn get_root_tasks(&self, project_id: Uuid) -> Vec<&Task> {
-        let mut tasks: Vec<&Task> = self
-            .container
+        self.container
             .get_project(&project_id)
             .map(|p| p.tasks.values().filter(|t| t.parent_id.is_none()).collect())
-            .unwrap_or_default();
-        tasks.sort_by_key(|t| t.date_start);
-        tasks
+            .unwrap_or_default()
     }
 
     pub fn get_subtasks(&self, project_id: &Uuid, parent_id: Uuid) -> Vec<&Task> {
-        let mut subtask: Vec<&Task> = self
-            .container
+        self.container
             .get_project(project_id)
             .map(|p| {
                 p.tasks
@@ -188,9 +184,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
                     .filter(|t| t.parent_id == Some(parent_id))
                     .collect()
             })
-            .unwrap_or_default();
-        subtask.sort_by_key(|t| t.date_start);
-        subtask
+            .unwrap_or_default()
     }
 
     pub fn get_task_allocations(&self, project_id: &Uuid, parent_id: Uuid) -> Vec<Uuid> {

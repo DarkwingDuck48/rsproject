@@ -256,6 +256,9 @@ export default function TasksView({ dataVersion, onDataChange }) {
             onChange: (keys) => selectTask(keys.length ? keys[0] : null),
           }}
           pagination={false}
+          // Таблица не сжимает колонки при узком окне: сохраняет естественную
+          // ширину и получает горизонтальный скролл (ресайзинг, 5.24).
+          scroll={{ x: "max-content" }}
         />
       )}
 

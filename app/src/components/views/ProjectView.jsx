@@ -85,7 +85,11 @@ export default function ProjectView({ dataVersion }) {
     <section className="view">
       <Typography.Title level={3}>Проект</Typography.Title>
       <Card>
-        <Descriptions bordered size="medium">
+        {/* layout="vertical" — метка над значением, column={1} — все поля
+            в один столбец: при ресайзинге окна нечему переноситься (5.24).
+            Descriptions.Item должны быть прямыми детьми Descriptions,
+            поэтому никаких обёрток (раньше тут был Space — он ломал структуру). */}
+        <Descriptions bordered size="medium" layout="vertical" column={1}>
           <Descriptions.Item label="Название">{project.name}</Descriptions.Item>
           <Descriptions.Item label="Описание">
             {project.description || "—"}
@@ -100,6 +104,7 @@ export default function ProjectView({ dataVersion }) {
             {pluralDays(project.duration_days)}
           </Descriptions.Item>
         </Descriptions>
+
         <Button
           type="primary"
           icon={<EditOutlined />}

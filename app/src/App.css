@@ -65,7 +65,9 @@ body,
         "top top"
         "side central"
         "bottom bottom";
-    grid-template-rows: var(--app-top-height) 1fr var(--app-status-height);
+    grid-template-rows:
+        var(--app-top-height) 1fr
+        minmax(var(--app-status-height), auto);
     grid-template-columns: var(--app-side-width) 1fr;
     height: 100vh;
     background: var(--app-bg);
@@ -131,6 +133,9 @@ body,
 /* ─────────── SidePanel ─────────── */
 .app-side-panel {
     grid-area: side;
+    /* min-width: 0 — грид-элемент может сужаться до нуля, иначе широкий
+       контент в center распирает сетку за пределы окна (ресайзинг 5.24). */
+    min-width: 0;
     background: var(--app-bg-side);
     border-right: 1px solid var(--app-border);
     overflow-y: auto;
@@ -232,6 +237,11 @@ body,
 /* ─────────── CentralPanel ─────────── */
 .app-central-panel {
     grid-area: central;
+    /* Ключевой фикс ресайзинга: без min-width: 0 трек 1fr не может стать
+       уже min-content контента — широкая таблица выталкивает сетку из окна,
+       и из-за overflow: hidden у body правый край просто обрезается.
+       С min-width: 0 контент переполняет панель → появляется свой скролл. */
+    min-width: 0;
     background: var(--app-bg);
     overflow-y: auto;
     padding: 24px;
@@ -262,6 +272,9 @@ body,
     align-items: center;
     gap: 8px;
     padding: 0 16px;
+    /* На узком окне сводка не помещается в одну строку — переносимся.
+       Минимальную высоту держит грид-ряд (minmax(..., auto)). */
+    flex-wrap: wrap;
     background: var(--app-bg-side);
     border-top: 1px solid var(--app-border);
     font-size: 12px;
@@ -467,8 +480,30 @@ body,
     background: var(--gantt-bar-critical);
 }
 
-/* ─────────── Адаптивность ─────────── */
-/* На узком окне скрываем боковую панель, чтобы контент занимал всю ширину. */
+/* ─────────── Адаптивность (ресайзинг, 5.24) ─────────── */
+/* Сетка построена на CSS Grid + CSS Variables, поэтому при ресайзе окна
+   раскладка пересчитывается автоматически. Правила ниже только уточняют:
+   — сужаем боковую панель на средних экранах;
+   — уменьшаем паддинг контента на узких;
+   — на совсем узких скрываем сайдбар, контент занимает всю ширину. */
+@media (max-width: 1100px) {
+    :root {
+        --app-side-width: 200px;
+    }
+}
+
+@media (max-width: 900px) {
+    .app-central-panel {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-central-panel {
+        padding: 12px;
+    }
+}
+
 @media (max-width: 720px) {
     .app {
         grid-template-columns: 0 1fr;

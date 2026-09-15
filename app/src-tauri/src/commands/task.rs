@@ -5,7 +5,7 @@ use logic::{
 };
 use uuid::Uuid;
 
-use crate::commands::utils::{parse_date, resolve_project_id};
+use crate::commands::utils::{parse_date, resolve_project_id, sort_by_dates};
 use crate::dto::{TaskAllocationInfo, TaskDetailInfo, TaskInfo, TaskTreeNode, TaskUpdateDto};
 use crate::state::AppState;
 
@@ -153,7 +153,7 @@ fn build_node(
     task: &Task,
 ) -> TaskTreeNode {
     let mut subtasks = task_service.get_subtasks(project_id, *task.get_id());
-    subtasks.sort_by_key(|st| st.date_start);
+    sort_by_dates(&mut subtasks);
     let children = subtasks
         .iter()
         .map(|t| build_node(task_service, project_id, t))
@@ -175,7 +175,7 @@ pub fn get_task_tree(
     let mut container = state.container();
     let task_service = TaskService::new(&mut *container);
     let mut roots = task_service.get_root_tasks(project_id);
-    roots.sort_by_key(|r| r.date_start);
+    sort_by_dates(&mut roots);
     Ok(roots
         .iter()
         .map(|t| build_node(&task_service, &project_id, t))
