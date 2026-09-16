@@ -1,5 +1,5 @@
 use logic::SingleProjectContainer;
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::Mutex};
 use uuid::Uuid;
 
 pub struct AppState {
@@ -8,6 +8,7 @@ pub struct AppState {
     pub selected_task_id: Mutex<Option<Uuid>>,
     pub selected_resource_id: Mutex<Option<Uuid>>,
     pub critical_path: Mutex<Option<Vec<Uuid>>>,
+    pub last_project_dir: Mutex<Option<PathBuf>>,
 }
 
 impl AppState {
@@ -18,6 +19,7 @@ impl AppState {
             selected_task_id: Mutex::new(None),
             selected_resource_id: Mutex::new(None),
             critical_path: Mutex::new(None),
+            last_project_dir: Mutex::new(None),
         }
     }
     pub fn container(&self) -> std::sync::MutexGuard<'_, SingleProjectContainer> {

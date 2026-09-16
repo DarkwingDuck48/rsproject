@@ -1,12 +1,22 @@
 //! Project commands.
 
+use std::path::PathBuf;
+
 use crate::ProjectInfo;
 use crate::commands::utils::{parse_date, resolve_project_id};
 use crate::state::AppState;
 use logic::SingleProjectContainer;
 use logic::{BasicGettersForStructures, Project, ProjectContainer, TaskService};
+use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
+
+fn default_directory(app: &tauri::AppHandle, state: &AppState) -> Option<PathBuf> {
+    if let Some(dir) = state.last_project_dir.lock().unwrap().clone() {
+        return Some(dir);
+    }
+    app.path().home_dir().ok()
+}
 
 // Создание проекта
 #[tauri::command]
@@ -78,11 +88,13 @@ pub fn open_project(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let path = app
-        .dialog()
-        .file()
-        .add_filter("JSON", &["json"])
-        .blocking_pick_file();
+    let mut builder = app.dialog().file().add_filter("JSON", &["json"]);
+
+    if let Some(dir) = default_directory(&app, &state) {
+        builder = builder.set_directory(dir)
+    }
+
+    let path = builder.blocking_pick_file();
 
     let path = match path {
         Some(p) => p,
@@ -105,11 +117,12 @@ pub fn open_project(
         .ok_or("Не нашли проектов в загруженном файле")?;
     *state.container() = new_container;
     *state.selected_project_id.lock().unwrap() = Some(project_id);
-
+    *state.last_project_dir.lock().unwrap() = file_path.parent().map(|p| p.to_path_buf());
     // Сброс состояний
     *state.selected_task_id.lock().unwrap() = None;
     *state.selected_resource_id.lock().unwrap() = None;
     *state.critical_path.lock().unwrap() = None;
+
     Ok(())
 }
 
@@ -136,12 +149,13 @@ pub fn save_project(
             .map_err(|e| format!("Не удалось сохранить файл: {}", e))?
     };
 
-    // 2. Диалог сохранения
-    let path = app
-        .dialog()
-        .file()
-        .add_filter("JSON", &["json"])
-        .blocking_save_file();
+    let mut builder = app.dialog().file().add_filter("JSON", &["json"]);
+
+    if let Some(dir) = default_directory(&app, &state) {
+        builder = builder.set_directory(dir)
+    }
+
+    let path = builder.blocking_save_file();
 
     let path = match path {
         Some(p) => p,
@@ -151,7 +165,7 @@ pub fn save_project(
     // 3. Пишем в файл
     let file_path = path.as_path().ok_or("Не удалось получить путь к файлу")?;
     std::fs::write(file_path, &content).map_err(|e| format!("Ошибка записи файла: {}", e))?;
-
+    *state.last_project_dir.lock().unwrap() = file_path.parent().map(|p| p.to_path_buf());
     Ok(())
 }
 
