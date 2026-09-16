@@ -49,8 +49,16 @@
 
 ### Требования
 
-- [Rust](https://www.rust-lang.org/tools/install) (stable, последней версии)
-- Базовые инструменты `rustup`, `cargo`
+- [Rust](https://www.rust-lang.org/tools/install) 1.85+ — проект использует edition 2024
+- [Node.js](https://nodejs.org/) 20.19+ или 22.12+ — нужен для сборки фронтенда
+- Базовые инструменты `rustup`, `cargo`, `npm`
+
+На **Linux** дополнительно нужны системные библиотеки для Tauri v2:
+
+```bash
+sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+    librsvg2-dev libxdo-dev libssl-dev
+```
 
 ### Рекомендуемые инструменты
 
@@ -62,41 +70,111 @@ rustup component add rustfmt
 rustup component add clippy
 ```
 
+Tauri CLI устанавливать глобально не нужно: локальная версия v2 уже указана в
+`app/package.json`, поэтому команды запускаются через `npm run tauri …` из папки `app/`.
+
 ## Структура проекта
 
-```
+Проект — Cargo workspace из трёх крейтов: `logic` (бизнес-логика, не зависит от UI),
+`app/src-tauri` (десктопное приложение на Tauri v2) и `tools` (инструменты разработки).
+
+```text
 rsproject/
-├── app/                  # GUI-приложение (интерфейс)
+├── app/                          # Десктопное приложение (Tauri v2)
+│   ├── src-tauri/                # Rust-бэкенд
+│   │   ├── src/
+│   │   │   ├── main.rs           # Точка входа
+│   │   │   ├── lib.rs            # tauri::Builder: плагины и список команд
+│   │   │   ├── state.rs          # AppState (Mutex<SingleProjectContainer>)
+│   │   │   ├── commands.rs       # Модуль Tauri-команд
+│   │   │   ├── commands/         # project, task, resources, utils
+│   │   │   ├── dto.rs            # Модуль DTO для фронтенда
+│   │   │   └── dto/              # project, task, resources
+│   │   ├── capabilities/         # Разрешения плагинов Tauri
+│   │   ├── icons/                # Иконки приложения
+│   │   ├── build.rs              # Сборка через tauri-build
+│   │   ├── tauri.conf.json       # Окно, бандл, идентификатор
+│   │   └── Cargo.toml
+│   ├── src/                      # React-фронтенд (Vite)
+│   │   ├── main.jsx              # Рендер приложения
+│   │   ├── App.jsx               # Корневой компонент: вкладки и раскладка
+│   │   ├── tabs.jsx              # Реестр вкладок (единый источник истины)
+│   │   ├── components/
+│   │   │   ├── layout/           # TopPanel, SidePanel, CentralPanel, StatusBar
+│   │   │   ├── views/            # ProjectView, TasksView, ResourcesView, GanttView
+│   │   │   └── dialogs/          # Диалоги создания/редактирования
+│   │   ├── context/              # SelectionContext — общее выделение элементов
+│   │   ├── hooks/                # useTheme, useHotkey
+│   │   ├── lib/                  # api.js, options.js, format.js, constants.js, errors.js
+│   │   └── types/                # JSDoc-типы, описывающие структуры logic
+│   ├── index.html                # Точка входа WebView
+│   ├── package.json
+│   └── vite.config.js
+├── logic/                        # Бизнес-логика (без UI-зависимостей)
 │   ├── src/
-│   │   ├── main.rs       # Точка входа
-│   │   ├── lib.rs        # Публичный API приложения
-│   │   └── app/
-│   │       ├── app_impl.rs   # Основная логика приложения
-│   │       ├── state.rs      # Состояние приложения
-│   │       ├── theme.rs      # Тема оформления
-│   │       ├── ui/           # Компоненты пользовательского интерфейса
-│   │       ├── views/        # Экраны: проект, задачи, ресурсы, Гант
-│   │       ├── dialogs/      # Диалоговые окна
-│   │       └── handlers/     # Обработчики действий
-│   └── examples/         # Демонстрационные примеры
-├── logic/                # Бизнес-логика (ядро)
-│   ├── src/
-│   │   ├── lib.rs            # Публичный API ядра
-│   │   ├── base_structures/  # Основные структуры данных
-│   │   │   ├── project.rs, tasks.rs, resource.rs
-│   │   │   ├── dependencies.rs, time_window.rs
-│   │   │   ├── resource_pool.rs, project_calendar.rs
-│   │   │   └── project_containers.rs, traits.rs
-│   │   ├── services/         # Сервисы планирования
-│   │   │   ├── scheduler.rs
-│   │   │   ├── resource_service.rs
-│   │   │   └── task_service.rs
-│   │   └── cust_exceptions.rs
+│   │   ├── lib.rs                # Публичный API крейта
+│   │   ├── base_structures.rs    # Модуль доменных структур
+│   │   ├── base_structures/      # project, tasks, resource, resource_pool,
+│   │   │                         # dependencies, project_calendar,
+│   │   │                         # project_containers, time_window, traits
+│   │   ├── services.rs           # Модуль сервисов
+│   │   ├── services/             # scheduler, task_service, resource_service
+│   │   └── cust_exceptions.rs    # Пользовательские исключения
 │   └── tests/
-│       └── integration.rs    # Интеграционные тесты
-├── docs/                 # Документация и скриншоты
-└── .github/              # CI/CD и шаблоны
+│       └── integration.rs        # Интеграционные тесты
+├── tools/                        # Инструменты разработки (в релиз не входят)
+│   ├── src/bin/
+│   │   ├── gen_demo_project.rs   # Генератор examples/demo_project.json
+│   │   ├── gen_big_project.rs    # Генератор examples/big_project.json
+│   │   └── gen_apartment_renovation.rs  # Генератор examples/apartment_renovation.json
+│   └── Cargo.toml
+├── examples/                     # Готовые проекты для загрузки в приложении
+│   ├── demo_project.json
+│   ├── big_project.json
+│   └── apartment_renovation.json
+├── docs/
+│   └── screenshots/              # Скриншоты для README
+├── .github/                      # CI/CD, шаблоны issue и PR
+├── Cargo.toml                    # Workspace: app/src-tauri + logic + tools
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── README.md
+└── LICENSE
 ```
+
+### Слои приложения
+
+Поток данных при вызове действия из интерфейса:
+
+```text
+React-компонент → lib/api.js (invoke) → Tauri-команда (commands/) → сервис (logic/src/services)
+                                       ↕ DTO (dto/)
+```
+
+- **`logic`** — чистый Rust: доменные структуры и сервисы. Здесь живут все правила
+  планирования (расчёт критического пути, аллокация ресурсов, стоимость).
+- **`commands/`** — тонкий адаптер между фронтендом и `logic`: разбирает аргументы,
+  достаёт проект из `AppState`, конвертирует ошибки в строки.
+- **`dto/`** — структуры только для сериализации в фронтенд; они отделяют внутреннюю
+  модель `logic` от того, что видит UI.
+- **`src/`** — React: вкладки, вьюхи, диалоги. Обращается к бэкенду **только** через
+  `invoke()` из `lib/api.js` — прямых вызовов `invoke` в компонентах не должно быть.
+
+### Демо-проекты
+
+Файлы в `examples/` — снапшоты, которые генерируют инструменты из `tools`:
+
+```bash
+cargo run -p tools --bin gen_demo_project > examples/demo_project.json
+cargo run -p tools --bin gen_big_project > examples/big_project.json
+cargo run -p tools --bin gen_apartment_renovation > examples/apartment_renovation.json
+```
+
+Генераторы создают случайные идентификаторы (UUID v4), поэтому повторный запуск даёт
+файл с другим содержимым: сам проект тот же, но в diff попадут все ID и часть порядка
+ключей. Обновляйте эти файлы только вместе с изменением модели данных или самих
+генераторов — иначе ревью утонет в шуме.
 
 ## Процесс разработки
 
@@ -105,10 +183,37 @@ rsproject/
 ```bash
 git clone https://github.com/DarkwingDuck48/rsproject.git
 cd rsproject
+
+# Rust-часть: крейты logic и app
 cargo build --workspace
+
+# Фронтенд: без него приложение не запустится
+cd app
+npm ci
 ```
 
-### 2. Создание ветки
+### 2. Запуск приложения
+
+```bash
+cd app
+npm run tauri dev
+```
+
+Команда поднимает Vite dev-сервер с горячей перезагрузкой фронтенда и пересобирает
+Rust-часть при изменениях. Первая сборка занимает несколько минут.
+
+Production-сборка (бинарник и бандлы появятся в `target/release/`):
+
+```bash
+cd app
+npm run tauri build
+```
+
+> Фронтенд собирается **до** компиляции Rust: Tauri встраивает содержимое `app/dist`
+> в бинарник. Именно поэтому `cargo build --release` без предварительного
+> `npm run build` не даёт рабочего приложения.
+
+### 3. Создание ветки
 
 Создайте ветку от `master`:
 
@@ -117,11 +222,11 @@ git checkout -b feature/краткое-описание    # для новой �
 git checkout -b fix/краткое-описание        # для исправления ошибки
 ```
 
-### 3. Разработка
+### 4. Разработка
 
 Вносите изменения, следуя [стилю кода](#стиль-кода).
 
-### 4. Проверка перед коммитом
+### 5. Проверка перед коммитом
 
 ```bash
 # Компиляция всего workspace
@@ -135,6 +240,9 @@ cargo fmt --all
 
 # Проверка линтером
 cargo clippy --workspace -- -D warnings
+
+# Сборка фронтенда
+cd app && npm run build
 ```
 
 ## Стиль кода
@@ -149,12 +257,12 @@ cargo clippy --workspace -- -D warnings
 
 ### Именование
 
-| Элемент        | Стиль          | Пример                    |
-|----------------|----------------|---------------------------|
-| Модули/крейты  | `snake_case`   | `base_structures`         |
-| Типы/Структуры | `UpperCamelCase` | `ProjectCalendar`      |
-| Функции/Методы | `snake_case`   | `get_project_tasks()`     |
-| Константы      | `UPPER_SNAKE`  | `MAX_TASKS`               |
+| Элемент        | Стиль            | Пример                      |
+| -------------- | ---------------- | --------------------------- |
+| Модули/крейты  | `snake_case`     | `base_structures`           |
+| Типы/Структуры | `UpperCamelCase` | `ProjectCalendar`           |
+| Функции/Методы | `snake_case`     | `get_project_tasks()`       |
+| Константы      | `UPPER_SNAKE`    | `MAX_TASKS`                 |
 | Признаки       | `UpperCamelCase` | `BasicGettersForStructures` |
 
 ### Обработка ошибок
@@ -162,17 +270,25 @@ cargo clippy --workspace -- -D warnings
 - Используйте `anyhow::Result<T>` для прикладного кода.
 - Используйте `thiserror` для библиотечных ошибок (крейт `logic`).
 - Избегайте `unwrap()` и `expect()` в production-коде — возвращайте `Result`.
+- В Tauri-командах ошибки конвертируются в `String` (`Result<T, String>`), потому что
+  именно строку получает фронтенд.
 
 ### Сериализация
 
 - Используйте `serde` с `derive` для `Serialize`/`Deserialize`.
-- Поля хранятся в `camelCase` при экспорте JSON (если настроено).
+- Поля в JSON сохраняют имена Rust-структур — `snake_case` (переименование не настроено).
+  Файлы проектов совместимы с этим форматом, поэтому менять имена полей можно только
+  вместе с миграцией.
+- На границе `invoke()` (Tauri v2) верхнеуровневые аргументы команды — `camelCase`
+  (макрос `#[tauri::command]` сам конвертирует `snake_case`-параметры: `date_start` →
+  `dateStart`), а поля вложенных DTO остаются `snake_case`.
 
 ### Зависимости
 
-- Новые внешние крейты должны быть обоснованы в PR.
+- Новые внешние крейты и npm-пакеты должны быть обоснованы в PR.
 - Предпочитайте крейты с лицензией Apache 2.0 или MIT.
-- Добавляйте зависимости в корневой `Cargo.toml` в секцию `[workspace.dependencies]`.
+- Rust-зависимости добавляйте в корневой `Cargo.toml` в секцию `[workspace.dependencies]`,
+  а в крейтах подключайте через `workspace = true`.
 
 ## Тестирование
 
@@ -229,6 +345,7 @@ cargo test -p logic -- test_create_empty_project
 - [ ] `cargo test --workspace` — все тесты проходят
 - [ ] `cargo fmt --all` — код отформатирован
 - [ ] `cargo clippy --workspace -- -D warnings` — нет замечаний линтера
+- [ ] `cd app && npm run build` — фронтенд собирается без ошибок
 - [ ] Добавлены тесты для новой функциональности
 - [ ] Обновлена документация (если необходимо)
 - [ ] Изменения проверены на целевой платформе

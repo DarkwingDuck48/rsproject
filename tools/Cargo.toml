@@ -1,0 +1,22 @@
+[package]
+name = "tools"
+# Инструменты разработки: генераторы демо-данных для папки `examples/`.
+# Крейт не публикуется и не попадает в релизные бандлы.
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+# Бинари определяются по файлам в `src/bin/`: gen_demo_project и gen_big_project.
+# Данные печатаются в stdout, поэтому результат направляется в файл явно:
+#   cargo run -p tools --bin gen_demo_project > examples/demo_project.json
+
+[dependencies]
+logic = { path = "../logic" }
+anyhow.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+# Нужен только ради типа `Uuid` в сигнатурах: генератор возвращает `project_id`,
+# чтобы тест мог посчитать критический путь (без идентификатора контейнер
+# не отдаёт свой проект).
+uuid = { version = "1", features = ["v4"] }

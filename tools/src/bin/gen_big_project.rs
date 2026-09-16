@@ -1,11 +1,11 @@
-//! Большой демо-проект (50+ задач) для тестирования приложения (восстановлен из EGui-эпохи, 5.23).
+//! Генератор большого демо-проекта для папки `examples/`.
 //!
 //! Проект длится 2 года: 6 фаз, вложенные группы, зависимости по критическому
-//! пути, 6 ресурсов с отпусками. Выводит JSON в stdout для загрузки в приложении
-//! через «Файл → Открыть проект».
+//! пути, 6 ресурсов с отпусками. Печатает JSON в stdout; полученный файл
+//! открывается в приложении через «Файл → Открыть проект».
 //!
 //! ```text
-//! cargo run -p logic --example big_project > examples/data/big_project.json
+//! cargo run -p tools --bin gen_big_project > examples/big_project.json
 //! ```
 
 use chrono::{Duration, TimeZone, Utc};
@@ -514,9 +514,9 @@ fn build_demo_container() -> anyhow::Result<SingleProjectContainer> {
     Ok(container)
 }
 
-/// Собирает большой демо-проект (50+ задач) и выводит его JSON в stdout.
-/// JSON можно загрузить в приложении через «Файл → Открыть проект»,
-/// либо сохранить в файл: `cargo run -p logic --example big_project > big_project.json`.
+/// Собирает большой демо-контейнер и печатает его JSON в stdout.
+/// Запуск из корня репозитория:
+/// `cargo run -p tools --bin gen_big_project > examples/big_project.json`.
 fn main() -> anyhow::Result<()> {
     let container = build_demo_container()?;
     println!("{}", serde_json::to_string_pretty(&container)?);

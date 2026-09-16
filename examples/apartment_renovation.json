@@ -1,0 +1,1038 @@
+{
+  "project": {
+    "id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+    "name": "Ремонт квартиры",
+    "description": "Комплексный ремонт двухкомнатной квартиры 62 м²: демонтаж, инженерные сети, черновая и чистовая отделка",
+    "calendar": {
+      "working_days": [
+        "Thu",
+        "Fri",
+        "Tue",
+        "Mon",
+        "Wed"
+      ],
+      "holidays": [
+        "2026-05-01",
+        "2026-03-09",
+        "2026-05-11"
+      ],
+      "working_hours_per_day": 8
+    },
+    "date_start": "2026-03-02T00:00:00Z",
+    "date_end": "2026-07-01T00:00:00Z",
+    "duration": [
+      10454400,
+      0
+    ],
+    "tasks": {
+      "01a8139c-5f42-4cc4-ab02-a409ec1a08d1": {
+        "id": "01a8139c-5f42-4cc4-ab02-a409ec1a08d1",
+        "name": "Замеры и корректировка сметы",
+        "date_start": "2026-03-02T00:00:00Z",
+        "date_end": "2026-03-04T00:00:00Z",
+        "duration": [
+          172800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "98c8b746-6fa5-4316-abfb-29a223d7af45"
+        ],
+        "dependencies": [],
+        "parent_id": "6a211972-5e38-4052-8096-73d7e473f76e",
+        "is_summary": false
+      },
+      "1ba0a457-a705-418b-9390-9cd230aa5ee8": {
+        "id": "1ba0a457-a705-418b-9390-9cd230aa5ee8",
+        "name": "Демонтаж старых покрытий",
+        "date_start": "2026-03-04T00:00:00Z",
+        "date_end": "2026-03-11T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "f22106e6-a865-4ab7-8c5a-1642224a2c0c",
+          "c30742f6-5dd1-4422-bce5-5c43fcc87838"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "01a8139c-5f42-4cc4-ab02-a409ec1a08d1",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "6a211972-5e38-4052-8096-73d7e473f76e",
+        "is_summary": false
+      },
+      "8e2de10f-7894-4d17-86e0-e47f3594ccc3": {
+        "id": "8e2de10f-7894-4d17-86e0-e47f3594ccc3",
+        "name": "Финальная уборка",
+        "date_start": "2026-06-23T00:00:00Z",
+        "date_end": "2026-06-28T00:00:00Z",
+        "duration": [
+          432000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "8228a210-96c4-4cb6-b553-2d7bc7c76802"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "f98bfdf8-1f03-4952-b733-02c99ddcbd18",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "2a0a41b4-4584-48c7-ab8f-65f6e033f65f",
+        "is_summary": false
+      },
+      "4805b8c9-9b8e-4d05-9c42-9e5c9c457662": {
+        "id": "4805b8c9-9b8e-4d05-9c42-9e5c9c457662",
+        "name": "Укладка плитки (санузлы, кухня)",
+        "date_start": "2026-05-13T00:00:00Z",
+        "date_end": "2026-05-28T00:00:00Z",
+        "duration": [
+          1296000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "1c90519a-128f-415a-9974-334eb0622524",
+          "0b6e1d29-be50-468f-9ca1-0344f75fcec1"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "f4aeeda9-c630-4b31-a8e3-f994ac291585",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "91e56471-102a-43f7-8821-ef3a3548f019",
+        "is_summary": false
+      },
+      "8e5842b9-926c-4a7a-a1da-6a504508302b": {
+        "id": "8e5842b9-926c-4a7a-a1da-6a504508302b",
+        "name": "Приёмка и передача объекта",
+        "date_start": "2026-06-28T00:00:00Z",
+        "date_end": "2026-07-01T00:00:00Z",
+        "duration": [
+          259200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "b3b19898-6801-41ad-baf1-393f3df5401e"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "8e2de10f-7894-4d17-86e0-e47f3594ccc3",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "2a0a41b4-4584-48c7-ab8f-65f6e033f65f",
+        "is_summary": false
+      },
+      "1fc52fd9-26db-4640-b91c-58908bf23a29": {
+        "id": "1fc52fd9-26db-4640-b91c-58908bf23a29",
+        "name": "Вывоз строительного мусора",
+        "date_start": "2026-03-17T00:00:00Z",
+        "date_end": "2026-03-19T00:00:00Z",
+        "duration": [
+          172800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "1fc2a991-1be4-4b99-897b-c83fb43c0d31"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "17ff4334-6e7d-49b6-9ef9-6c0f418873e1",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "6a211972-5e38-4052-8096-73d7e473f76e",
+        "is_summary": false
+      },
+      "be16cc96-b75b-44db-b42b-b7b0c1537b3c": {
+        "id": "be16cc96-b75b-44db-b42b-b7b0c1537b3c",
+        "name": "Напольные покрытия (ламинат)",
+        "date_start": "2026-05-27T00:00:00Z",
+        "date_end": "2026-06-09T00:00:00Z",
+        "duration": [
+          1123200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "5dbcc9b2-471c-41c7-af37-64adffdd8805"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "4805b8c9-9b8e-4d05-9c42-9e5c9c457662",
+            "lag": [
+              0,
+              0
+            ]
+          },
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "5b531584-b600-4c02-8031-481cdb924a3b",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "91e56471-102a-43f7-8821-ef3a3548f019",
+        "is_summary": false
+      },
+      "0f5e61d1-747a-4a03-8a3b-15b953616080": {
+        "id": "0f5e61d1-747a-4a03-8a3b-15b953616080",
+        "name": "Подбор отделочных материалов",
+        "date_start": "2026-03-04T00:00:00Z",
+        "date_end": "2026-03-11T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "82810c87-d436-49a2-8789-61888c285e6a"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "01a8139c-5f42-4cc4-ab02-a409ec1a08d1",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "6a211972-5e38-4052-8096-73d7e473f76e",
+        "is_summary": false
+      },
+      "72410d32-bbfb-434e-89eb-a706ed61bad7": {
+        "id": "72410d32-bbfb-434e-89eb-a706ed61bad7",
+        "name": "Опрессовка и приёмка инженерных сетей",
+        "date_start": "2026-04-01T00:00:00Z",
+        "date_end": "2026-04-03T00:00:00Z",
+        "duration": [
+          172800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "305a23a4-d2f8-4de4-aa25-8a15f7b98da2"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "b78ebd2d-95a8-4c54-ae97-dbaed4dd47ff",
+            "lag": [
+              0,
+              0
+            ]
+          },
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "8d190054-0449-4af4-b197-999cc2ea65ae",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "a01d1b9b-4f1b-4a4f-b5cf-27858f01754a",
+        "is_summary": false
+      },
+      "37d42ea3-5ff3-4243-8f87-e26bc3dadb08": {
+        "id": "37d42ea3-5ff3-4243-8f87-e26bc3dadb08",
+        "name": "Штукатурка стен и потолков",
+        "date_start": "2026-04-14T00:00:00Z",
+        "date_end": "2026-04-24T00:00:00Z",
+        "duration": [
+          864000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "979b930b-2ec8-48ac-a891-678313eddb4b",
+          "ba4916b5-4a69-48b7-aa4b-df6333b76340"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "9b5f5551-beab-403f-bdb1-db53589fc5fb",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "0e86d8fa-0bc8-4412-af04-e7d8b92f55ba",
+        "is_summary": false
+      },
+      "8cc43dab-6ff7-464f-b0f0-c01bbff8ec60": {
+        "id": "8cc43dab-6ff7-464f-b0f0-c01bbff8ec60",
+        "name": "Стяжка пола",
+        "date_start": "2026-04-24T00:00:00Z",
+        "date_end": "2026-04-30T00:00:00Z",
+        "duration": [
+          518400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "07f3720b-18a5-44b1-a716-e19d49dcef6e"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "37d42ea3-5ff3-4243-8f87-e26bc3dadb08",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "0e86d8fa-0bc8-4412-af04-e7d8b92f55ba",
+        "is_summary": false
+      },
+      "bb59e442-2e94-49de-a88c-3dc502c553e5": {
+        "id": "bb59e442-2e94-49de-a88c-3dc502c553e5",
+        "name": "Монтаж освещения и розеток",
+        "date_start": "2026-05-27T00:00:00Z",
+        "date_end": "2026-06-04T00:00:00Z",
+        "duration": [
+          691200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "1f2417d9-2334-49a7-a638-ba5d60170f54"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "5b531584-b600-4c02-8031-481cdb924a3b",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "91e56471-102a-43f7-8821-ef3a3548f019",
+        "is_summary": false
+      },
+      "17ff4334-6e7d-49b6-9ef9-6c0f418873e1": {
+        "id": "17ff4334-6e7d-49b6-9ef9-6c0f418873e1",
+        "name": "Демонтаж перегородок и сантехкабины",
+        "date_start": "2026-03-11T00:00:00Z",
+        "date_end": "2026-03-17T00:00:00Z",
+        "duration": [
+          518400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "47506175-3aa3-4147-aa45-905a266e2d59"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "1ba0a457-a705-418b-9390-9cd230aa5ee8",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "6a211972-5e38-4052-8096-73d7e473f76e",
+        "is_summary": false
+      },
+      "f98bfdf8-1f03-4952-b733-02c99ddcbd18": {
+        "id": "f98bfdf8-1f03-4952-b733-02c99ddcbd18",
+        "name": "Установка сантехники и бытовой техники",
+        "date_start": "2026-06-16T00:00:00Z",
+        "date_end": "2026-06-23T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "01219b99-450d-4091-8b81-160a355d0d4e"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "38294309-1d78-4666-8052-e7fcfc76b194",
+            "lag": [
+              0,
+              0
+            ]
+          },
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "bb59e442-2e94-49de-a88c-3dc502c553e5",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "2a0a41b4-4584-48c7-ab8f-65f6e033f65f",
+        "is_summary": false
+      },
+      "a01d1b9b-4f1b-4a4f-b5cf-27858f01754a": {
+        "id": "a01d1b9b-4f1b-4a4f-b5cf-27858f01754a",
+        "name": "Инженерные сети",
+        "date_start": "2026-03-19T00:00:00Z",
+        "date_end": "2026-04-03T00:00:00Z",
+        "duration": [
+          1296000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "d173fdfc-a5d0-4870-8da7-abc2f1d2dbe0": {
+        "id": "d173fdfc-a5d0-4870-8da7-abc2f1d2dbe0",
+        "name": "Сантехника: разводка труб",
+        "date_start": "2026-03-19T00:00:00Z",
+        "date_end": "2026-03-26T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "e90225c7-d605-40eb-80e8-a29ade54ef96",
+          "40c759d0-0f15-45de-a659-0f65a1a36733"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "1fc52fd9-26db-4640-b91c-58908bf23a29",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "a01d1b9b-4f1b-4a4f-b5cf-27858f01754a",
+        "is_summary": false
+      },
+      "9b5f5551-beab-403f-bdb1-db53589fc5fb": {
+        "id": "9b5f5551-beab-403f-bdb1-db53589fc5fb",
+        "name": "Возведение перегородок (гипсокартон)",
+        "date_start": "2026-04-03T00:00:00Z",
+        "date_end": "2026-04-14T00:00:00Z",
+        "duration": [
+          950400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "32fe9e95-144f-4b66-84d9-d00a5a2f6b61"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "72410d32-bbfb-434e-89eb-a706ed61bad7",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "0e86d8fa-0bc8-4412-af04-e7d8b92f55ba",
+        "is_summary": false
+      },
+      "f4aeeda9-c630-4b31-a8e3-f994ac291585": {
+        "id": "f4aeeda9-c630-4b31-a8e3-f994ac291585",
+        "name": "Гидроизоляция санузлов",
+        "date_start": "2026-05-07T00:00:00Z",
+        "date_end": "2026-05-13T00:00:00Z",
+        "duration": [
+          518400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "c60304b3-657f-4585-aece-9c282ab3f8c6"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "8cc43dab-6ff7-464f-b0f0-c01bbff8ec60",
+            "lag": [
+              604800,
+              0
+            ]
+          }
+        ],
+        "parent_id": "0e86d8fa-0bc8-4412-af04-e7d8b92f55ba",
+        "is_summary": false
+      },
+      "0e86d8fa-0bc8-4412-af04-e7d8b92f55ba": {
+        "id": "0e86d8fa-0bc8-4412-af04-e7d8b92f55ba",
+        "name": "Черновая отделка",
+        "date_start": "2026-04-03T00:00:00Z",
+        "date_end": "2026-05-13T00:00:00Z",
+        "duration": [
+          3456000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "6a211972-5e38-4052-8096-73d7e473f76e": {
+        "id": "6a211972-5e38-4052-8096-73d7e473f76e",
+        "name": "Демонтаж и подготовка",
+        "date_start": "2026-03-02T00:00:00Z",
+        "date_end": "2026-03-19T00:00:00Z",
+        "duration": [
+          1468800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "b78ebd2d-95a8-4c54-ae97-dbaed4dd47ff": {
+        "id": "b78ebd2d-95a8-4c54-ae97-dbaed4dd47ff",
+        "name": "Электромонтаж: разводка кабеля",
+        "date_start": "2026-03-19T00:00:00Z",
+        "date_end": "2026-03-27T00:00:00Z",
+        "duration": [
+          691200,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "7abe359e-b197-4d54-a36d-e125cd90c120",
+          "a2b92b4d-94b2-40d5-9af6-90660855a7e2"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "1fc52fd9-26db-4640-b91c-58908bf23a29",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "a01d1b9b-4f1b-4a4f-b5cf-27858f01754a",
+        "is_summary": false
+      },
+      "8d190054-0449-4af4-b197-999cc2ea65ae": {
+        "id": "8d190054-0449-4af4-b197-999cc2ea65ae",
+        "name": "Монтаж вентиляции и кондиционирования",
+        "date_start": "2026-03-26T00:00:00Z",
+        "date_end": "2026-04-01T00:00:00Z",
+        "duration": [
+          518400,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "3a9b922b-579d-483b-bf21-a99a85c9489b"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "d173fdfc-a5d0-4870-8da7-abc2f1d2dbe0",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "a01d1b9b-4f1b-4a4f-b5cf-27858f01754a",
+        "is_summary": false
+      },
+      "91e56471-102a-43f7-8821-ef3a3548f019": {
+        "id": "91e56471-102a-43f7-8821-ef3a3548f019",
+        "name": "Чистовая отделка",
+        "date_start": "2026-05-13T00:00:00Z",
+        "date_end": "2026-06-16T00:00:00Z",
+        "duration": [
+          2937600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": null,
+        "is_summary": true
+      },
+      "5b531584-b600-4c02-8031-481cdb924a3b": {
+        "id": "5b531584-b600-4c02-8031-481cdb924a3b",
+        "name": "Шпаклёвка и покраска стен и потолков",
+        "date_start": "2026-05-13T00:00:00Z",
+        "date_end": "2026-05-27T00:00:00Z",
+        "duration": [
+          1209600,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "e1f9ef16-f723-4f68-9d9b-a119a8b5ac8c"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "f4aeeda9-c630-4b31-a8e3-f994ac291585",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "91e56471-102a-43f7-8821-ef3a3548f019",
+        "is_summary": false
+      },
+      "38294309-1d78-4666-8052-e7fcfc76b194": {
+        "id": "38294309-1d78-4666-8052-e7fcfc76b194",
+        "name": "Установка дверей и плинтусов",
+        "date_start": "2026-06-09T00:00:00Z",
+        "date_end": "2026-06-16T00:00:00Z",
+        "duration": [
+          604800,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [
+          "128829e4-cc4c-41ca-83e4-701c19e7ebe5"
+        ],
+        "dependencies": [
+          {
+            "dependency_type": "Blocking",
+            "depends_on": "be16cc96-b75b-44db-b42b-b7b0c1537b3c",
+            "lag": [
+              0,
+              0
+            ]
+          }
+        ],
+        "parent_id": "91e56471-102a-43f7-8821-ef3a3548f019",
+        "is_summary": false
+      },
+      "2a0a41b4-4584-48c7-ab8f-65f6e033f65f": {
+        "id": "2a0a41b4-4584-48c7-ab8f-65f6e033f65f",
+        "name": "Финиш и сдача",
+        "date_start": "2026-06-16T00:00:00Z",
+        "date_end": "2026-07-01T00:00:00Z",
+        "duration": [
+          1296000,
+          0
+        ],
+        "status": "New",
+        "resource_allocations": [],
+        "dependencies": [],
+        "parent_id": null,
+        "is_summary": true
+      }
+    }
+  },
+  "resource_pool": {
+    "resources": {
+      "a8dff79a-df07-4e5a-9508-a992df24a72e": {
+        "id": "a8dff79a-df07-4e5a-9508-a992df24a72e",
+        "name": "Дизайнер",
+        "rate": 2000.0,
+        "rate_measure": "Hourly",
+        "unavailable_periods": []
+      },
+      "c43d37a3-4bba-4614-85b0-c7505b6dd250": {
+        "id": "c43d37a3-4bba-4614-85b0-c7505b6dd250",
+        "name": "Электрик",
+        "rate": 3200.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": [
+          {
+            "period": {
+              "date_start": "2026-04-13T00:00:00Z",
+              "date_end": "2026-04-15T00:00:00Z"
+            },
+            "exception_type": "SickLeave"
+          }
+        ]
+      },
+      "dd5de216-02db-4201-b056-5770205964c8": {
+        "id": "dd5de216-02db-4201-b056-5770205964c8",
+        "name": "Плиточник",
+        "rate": 3000.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      },
+      "65f1a636-1742-43e2-af25-1d900323a278": {
+        "id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "name": "Прораб",
+        "rate": 3500.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": [
+          {
+            "period": {
+              "date_start": "2026-04-06T00:00:00Z",
+              "date_end": "2026-04-12T00:00:00Z"
+            },
+            "exception_type": "Vacation"
+          }
+        ]
+      },
+      "79f47b90-35e7-447e-a02a-a389d45fabad": {
+        "id": "79f47b90-35e7-447e-a02a-a389d45fabad",
+        "name": "Сантехник",
+        "rate": 3000.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      },
+      "b833fa0f-1e3c-47c6-b9f2-24e9366998ac": {
+        "id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "name": "Отделочник",
+        "rate": 2800.0,
+        "rate_measure": "Daily",
+        "unavailable_periods": []
+      }
+    },
+    "allocations": {
+      "f22106e6-a865-4ab7-8c5a-1642224a2c0c": {
+        "id": "f22106e6-a865-4ab7-8c5a-1642224a2c0c",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "1ba0a457-a705-418b-9390-9cd230aa5ee8",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-03-04T00:00:00Z",
+          "date_end": "2026-03-11T00:00:00Z"
+        }
+      },
+      "7abe359e-b197-4d54-a36d-e125cd90c120": {
+        "id": "7abe359e-b197-4d54-a36d-e125cd90c120",
+        "resource_id": "c43d37a3-4bba-4614-85b0-c7505b6dd250",
+        "task_id": "b78ebd2d-95a8-4c54-ae97-dbaed4dd47ff",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-03-19T00:00:00Z",
+          "date_end": "2026-03-27T00:00:00Z"
+        }
+      },
+      "305a23a4-d2f8-4de4-aa25-8a15f7b98da2": {
+        "id": "305a23a4-d2f8-4de4-aa25-8a15f7b98da2",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "72410d32-bbfb-434e-89eb-a706ed61bad7",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-04-01T00:00:00Z",
+          "date_end": "2026-04-03T00:00:00Z"
+        }
+      },
+      "1fc2a991-1be4-4b99-897b-c83fb43c0d31": {
+        "id": "1fc2a991-1be4-4b99-897b-c83fb43c0d31",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "1fc52fd9-26db-4640-b91c-58908bf23a29",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2026-03-17T00:00:00Z",
+          "date_end": "2026-03-19T00:00:00Z"
+        }
+      },
+      "c30742f6-5dd1-4422-bce5-5c43fcc87838": {
+        "id": "c30742f6-5dd1-4422-bce5-5c43fcc87838",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "1ba0a457-a705-418b-9390-9cd230aa5ee8",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.2,
+        "time_window": {
+          "date_start": "2026-03-04T00:00:00Z",
+          "date_end": "2026-03-11T00:00:00Z"
+        }
+      },
+      "98c8b746-6fa5-4316-abfb-29a223d7af45": {
+        "id": "98c8b746-6fa5-4316-abfb-29a223d7af45",
+        "resource_id": "a8dff79a-df07-4e5a-9508-a992df24a72e",
+        "task_id": "01a8139c-5f42-4cc4-ab02-a409ec1a08d1",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.4,
+        "time_window": {
+          "date_start": "2026-03-02T00:00:00Z",
+          "date_end": "2026-03-04T00:00:00Z"
+        }
+      },
+      "0b6e1d29-be50-468f-9ca1-0344f75fcec1": {
+        "id": "0b6e1d29-be50-468f-9ca1-0344f75fcec1",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "4805b8c9-9b8e-4d05-9c42-9e5c9c457662",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.2,
+        "time_window": {
+          "date_start": "2026-05-13T00:00:00Z",
+          "date_end": "2026-05-28T00:00:00Z"
+        }
+      },
+      "3a9b922b-579d-483b-bf21-a99a85c9489b": {
+        "id": "3a9b922b-579d-483b-bf21-a99a85c9489b",
+        "resource_id": "79f47b90-35e7-447e-a02a-a389d45fabad",
+        "task_id": "8d190054-0449-4af4-b197-999cc2ea65ae",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-03-26T00:00:00Z",
+          "date_end": "2026-04-01T00:00:00Z"
+        }
+      },
+      "e90225c7-d605-40eb-80e8-a29ade54ef96": {
+        "id": "e90225c7-d605-40eb-80e8-a29ade54ef96",
+        "resource_id": "79f47b90-35e7-447e-a02a-a389d45fabad",
+        "task_id": "d173fdfc-a5d0-4870-8da7-abc2f1d2dbe0",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-03-19T00:00:00Z",
+          "date_end": "2026-03-26T00:00:00Z"
+        }
+      },
+      "e1f9ef16-f723-4f68-9d9b-a119a8b5ac8c": {
+        "id": "e1f9ef16-f723-4f68-9d9b-a119a8b5ac8c",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "5b531584-b600-4c02-8031-481cdb924a3b",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-05-13T00:00:00Z",
+          "date_end": "2026-05-27T00:00:00Z"
+        }
+      },
+      "5dbcc9b2-471c-41c7-af37-64adffdd8805": {
+        "id": "5dbcc9b2-471c-41c7-af37-64adffdd8805",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "be16cc96-b75b-44db-b42b-b7b0c1537b3c",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-05-27T00:00:00Z",
+          "date_end": "2026-06-09T00:00:00Z"
+        }
+      },
+      "47506175-3aa3-4147-aa45-905a266e2d59": {
+        "id": "47506175-3aa3-4147-aa45-905a266e2d59",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "17ff4334-6e7d-49b6-9ef9-6c0f418873e1",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-03-11T00:00:00Z",
+          "date_end": "2026-03-17T00:00:00Z"
+        }
+      },
+      "07f3720b-18a5-44b1-a716-e19d49dcef6e": {
+        "id": "07f3720b-18a5-44b1-a716-e19d49dcef6e",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "8cc43dab-6ff7-464f-b0f0-c01bbff8ec60",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-04-24T00:00:00Z",
+          "date_end": "2026-04-30T00:00:00Z"
+        }
+      },
+      "128829e4-cc4c-41ca-83e4-701c19e7ebe5": {
+        "id": "128829e4-cc4c-41ca-83e4-701c19e7ebe5",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "38294309-1d78-4666-8052-e7fcfc76b194",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-06-09T00:00:00Z",
+          "date_end": "2026-06-16T00:00:00Z"
+        }
+      },
+      "1f2417d9-2334-49a7-a638-ba5d60170f54": {
+        "id": "1f2417d9-2334-49a7-a638-ba5d60170f54",
+        "resource_id": "c43d37a3-4bba-4614-85b0-c7505b6dd250",
+        "task_id": "bb59e442-2e94-49de-a88c-3dc502c553e5",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-05-27T00:00:00Z",
+          "date_end": "2026-06-04T00:00:00Z"
+        }
+      },
+      "a2b92b4d-94b2-40d5-9af6-90660855a7e2": {
+        "id": "a2b92b4d-94b2-40d5-9af6-90660855a7e2",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "b78ebd2d-95a8-4c54-ae97-dbaed4dd47ff",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2026-03-19T00:00:00Z",
+          "date_end": "2026-03-27T00:00:00Z"
+        }
+      },
+      "c60304b3-657f-4585-aece-9c282ab3f8c6": {
+        "id": "c60304b3-657f-4585-aece-9c282ab3f8c6",
+        "resource_id": "dd5de216-02db-4201-b056-5770205964c8",
+        "task_id": "f4aeeda9-c630-4b31-a8e3-f994ac291585",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-05-07T00:00:00Z",
+          "date_end": "2026-05-13T00:00:00Z"
+        }
+      },
+      "8228a210-96c4-4cb6-b553-2d7bc7c76802": {
+        "id": "8228a210-96c4-4cb6-b553-2d7bc7c76802",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "8e2de10f-7894-4d17-86e0-e47f3594ccc3",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2026-06-23T00:00:00Z",
+          "date_end": "2026-06-28T00:00:00Z"
+        }
+      },
+      "82810c87-d436-49a2-8789-61888c285e6a": {
+        "id": "82810c87-d436-49a2-8789-61888c285e6a",
+        "resource_id": "a8dff79a-df07-4e5a-9508-a992df24a72e",
+        "task_id": "0f5e61d1-747a-4a03-8a3b-15b953616080",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.5,
+        "time_window": {
+          "date_start": "2026-03-04T00:00:00Z",
+          "date_end": "2026-03-11T00:00:00Z"
+        }
+      },
+      "ba4916b5-4a69-48b7-aa4b-df6333b76340": {
+        "id": "ba4916b5-4a69-48b7-aa4b-df6333b76340",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "37d42ea3-5ff3-4243-8f87-e26bc3dadb08",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.2,
+        "time_window": {
+          "date_start": "2026-04-14T00:00:00Z",
+          "date_end": "2026-04-24T00:00:00Z"
+        }
+      },
+      "1c90519a-128f-415a-9974-334eb0622524": {
+        "id": "1c90519a-128f-415a-9974-334eb0622524",
+        "resource_id": "dd5de216-02db-4201-b056-5770205964c8",
+        "task_id": "4805b8c9-9b8e-4d05-9c42-9e5c9c457662",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-05-13T00:00:00Z",
+          "date_end": "2026-05-28T00:00:00Z"
+        }
+      },
+      "979b930b-2ec8-48ac-a891-678313eddb4b": {
+        "id": "979b930b-2ec8-48ac-a891-678313eddb4b",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "37d42ea3-5ff3-4243-8f87-e26bc3dadb08",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-04-14T00:00:00Z",
+          "date_end": "2026-04-24T00:00:00Z"
+        }
+      },
+      "40c759d0-0f15-45de-a659-0f65a1a36733": {
+        "id": "40c759d0-0f15-45de-a659-0f65a1a36733",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "d173fdfc-a5d0-4870-8da7-abc2f1d2dbe0",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 0.3,
+        "time_window": {
+          "date_start": "2026-03-19T00:00:00Z",
+          "date_end": "2026-03-26T00:00:00Z"
+        }
+      },
+      "01219b99-450d-4091-8b81-160a355d0d4e": {
+        "id": "01219b99-450d-4091-8b81-160a355d0d4e",
+        "resource_id": "79f47b90-35e7-447e-a02a-a389d45fabad",
+        "task_id": "f98bfdf8-1f03-4952-b733-02c99ddcbd18",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-06-16T00:00:00Z",
+          "date_end": "2026-06-23T00:00:00Z"
+        }
+      },
+      "b3b19898-6801-41ad-baf1-393f3df5401e": {
+        "id": "b3b19898-6801-41ad-baf1-393f3df5401e",
+        "resource_id": "65f1a636-1742-43e2-af25-1d900323a278",
+        "task_id": "8e5842b9-926c-4a7a-a1da-6a504508302b",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-06-28T00:00:00Z",
+          "date_end": "2026-07-01T00:00:00Z"
+        }
+      },
+      "32fe9e95-144f-4b66-84d9-d00a5a2f6b61": {
+        "id": "32fe9e95-144f-4b66-84d9-d00a5a2f6b61",
+        "resource_id": "b833fa0f-1e3c-47c6-b9f2-24e9366998ac",
+        "task_id": "9b5f5551-beab-403f-bdb1-db53589fc5fb",
+        "project_id": "d289f4b6-1c96-43d3-96f7-f36caa7e62b6",
+        "engagement_rate": 1.0,
+        "time_window": {
+          "date_start": "2026-04-03T00:00:00Z",
+          "date_end": "2026-04-14T00:00:00Z"
+        }
+      }
+    }
+  },
+  "calendars": {
+    "d289f4b6-1c96-43d3-96f7-f36caa7e62b6": {
+      "working_days": [
+        "Thu",
+        "Fri",
+        "Tue",
+        "Mon",
+        "Wed"
+      ],
+      "holidays": [
+        "2026-05-01",
+        "2026-03-09",
+        "2026-05-11"
+      ],
+      "working_hours_per_day": 8
+    }
+  }
+}

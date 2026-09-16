@@ -1,11 +1,11 @@
-//! Демо-проект для тестирования приложения (восстановлен из EGui-эпохи, 5.23).
+//! Генератор демо-проекта для папки `examples/`.
 //!
 //! Собирает проект с ресурсами, иерархией задач, зависимостями и отпусками,
-//! затем выводит его JSON в stdout. Готовый файл можно открыть в приложении:
-//! «Файл → Открыть проект» (или `cargo run` с перенаправлением в файл).
+//! затем печатает его JSON в stdout. Полученный файл открывается в приложении
+//! через «Файл → Открыть проект».
 //!
 //! ```text
-//! cargo run -p logic --example demo_project > examples/data/demo_project.json
+//! cargo run -p tools --bin gen_demo_project > examples/demo_project.json
 //! ```
 
 use chrono::{Duration, TimeZone, Utc};
@@ -152,9 +152,9 @@ fn build_demo_container() -> anyhow::Result<SingleProjectContainer> {
     Ok(container)
 }
 
-/// Собирает демо-контейнер и выводит его JSON в stdout.
-/// JSON можно загрузить в приложении через «Файл → Открыть проект»,
-/// либо сохранить в файл: `cargo run -p logic --example demo_project > demo_project.json`.
+/// Собирает демо-контейнер и печатает его JSON в stdout.
+/// Запуск из корня репозитория:
+/// `cargo run -p tools --bin gen_demo_project > examples/demo_project.json`.
 fn main() -> anyhow::Result<()> {
     let container = build_demo_container()?;
     println!("{}", serde_json::to_string_pretty(&container)?);
