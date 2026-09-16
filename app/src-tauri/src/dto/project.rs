@@ -13,10 +13,15 @@ pub struct ProjectInfo {
     date_start: DateTime<Utc>,
     date_end: DateTime<Utc>,
     duration_days: i64,
+    project_cost: f64,
 }
 
 impl ProjectInfo {
-    pub fn from_state(state: tauri::State<'_, AppState>, project_id: Uuid) -> Result<Self, String> {
+    pub fn from_state(
+        state: &tauri::State<'_, AppState>,
+        project_id: Uuid,
+        project_cost: f64,
+    ) -> Result<Self, String> {
         let container = state.container();
         let project = container
             .get_project(&project_id)
@@ -28,6 +33,7 @@ impl ProjectInfo {
             date_start: project.date_start,
             date_end: project.date_end,
             duration_days: project.duration.num_days(),
+            project_cost,
         })
     }
 }

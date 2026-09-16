@@ -103,6 +103,9 @@ export default function ProjectView({ dataVersion }) {
           <Descriptions.Item label="Длительность">
             {pluralDays(project.duration_days)}
           </Descriptions.Item>
+          <Descriptions.Item label="Стоимость">
+            {pluralDays(project.project_cost)}
+          </Descriptions.Item>
         </Descriptions>
 
         <Button

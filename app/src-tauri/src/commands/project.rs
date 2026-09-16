@@ -175,5 +175,12 @@ pub fn get_project_info(
     project_id: Option<Uuid>,
 ) -> Result<ProjectInfo, String> {
     let res_project_id = resolve_project_id(&state, project_id)?;
-    ProjectInfo::from_state(state, res_project_id)
+    let project_cost = {
+        let mut container = state.container();
+        let task_service = TaskService::new(&mut *container);
+        task_service
+            .calculate_project_cost(res_project_id)
+            .map_err(|e| e.to_string())?
+    };
+    ProjectInfo::from_state(&state, res_project_id, project_cost)
 }

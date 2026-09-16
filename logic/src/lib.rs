@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
 mod base_structures;
 pub mod cust_exceptions;
 mod services;
