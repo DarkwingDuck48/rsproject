@@ -1,7 +1,8 @@
 use chrono::{TimeZone, Utc};
 use logic::{
-    BasicGettersForStructures, ExceptionPeriod, ExceptionType, Project, ProjectContainer,
-    RateMeasure, ResourceService, SingleProjectContainer, TaskService, TaskUpdate, TimeWindow,
+    BasicGettersForStructures, DependencyType, ExceptionPeriod, ExceptionType, Project,
+    ProjectContainer, RateMeasure, ResourceService, Scheduler, SingleProjectContainer, TaskService,
+    TaskUpdate, TimeWindow,
 };
 
 #[test]
@@ -255,6 +256,66 @@ fn test_clear_parent_to_root() -> anyhow::Result<()> {
             .clone()
     };
     assert_eq!(parent.parent_id, None);
+
+    Ok(())
+}
+
+/// Дата окончания проекта не влияет на критический путь (issue #17).
+///
+/// Планировщик считает путь как самую длинную цепочку работ от даты старта проекта
+/// по длительностям и зависимостям: поздний финиш задач без последователей берётся
+/// равным расчётному окончанию, а не дате окончания проекта. Поэтому широкое окно
+/// проекта (дата окончания намного позже расчётного финиша) не делает путь пустым.
+#[test]
+fn test_critical_path_does_not_depend_on_project_end() -> anyhow::Result<()> {
+    let mut container = SingleProjectContainer::new();
+
+    // Окно проекта — почти год, а работы занимают около двух недель.
+    let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    let end = Utc.with_ymd_and_hms(2026, 12, 31, 0, 0, 0).unwrap();
+    let project = Project::new("Test", "Critical path vs project end", start, end)?;
+    let project_id = *project.get_id();
+    container.add_project(project)?;
+
+    // A (10 дней) → B (5 дней): расчётный финиш — середина января, то есть
+    // задолго до даты окончания проекта.
+    let (task_a, task_b) = {
+        let mut task_service = TaskService::new(&mut container);
+        let a_start = Utc.with_ymd_and_hms(2026, 1, 5, 0, 0, 0).unwrap();
+
+        let a = task_service.create_regular_task(
+            project_id,
+            "A".into(),
+            a_start,
+            a_start + chrono::TimeDelta::days(10),
+            None,
+        )?;
+        let a_id = *a.get_id();
+
+        let b = task_service.create_regular_task(
+            project_id,
+            "B".into(),
+            a_start + chrono::TimeDelta::days(10),
+            a_start + chrono::TimeDelta::days(15),
+            None,
+        )?;
+        let b_id = *b.get_id();
+
+        task_service.add_dependency(project_id, b_id, a_id, DependencyType::Blocking, None)?;
+
+        (a_id, b_id)
+    };
+
+    let critical = {
+        let scheduler = Scheduler::new(&container);
+        scheduler.critical_path(project_id)?
+    };
+
+    assert!(
+        !critical.is_empty(),
+        "критический путь не должен пропадать из-за даты окончания проекта"
+    );
+    assert_eq!(critical, vec![task_a, task_b]);
 
     Ok(())
 }

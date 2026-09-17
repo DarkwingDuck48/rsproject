@@ -315,7 +315,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
         engagement: f64,
         time_window: Option<TimeWindow>,
     ) -> anyhow::Result<Uuid> {
-        let (actual_window, task_start, task_end) = {
+        let actual_window = {
             let project = self
                 .container
                 .get_project(&project_id)
@@ -329,7 +329,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             let task_end = *task.get_date_end();
 
             // Определяем окно: либо переданное, либо вся задача
-            let window = match time_window {
+            match time_window {
                 Some(w) => {
                     // Проверка, что окно внутри задачи
                     if w.date_start < task_start || w.date_end > task_end {
@@ -343,9 +343,7 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
                     w
                 }
                 None => TimeWindow::new(task_start, task_end)?,
-            };
-
-            (window, task_start, task_end)
+            }
         };
 
         let calendar = self
@@ -509,6 +507,8 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             }
             Ok(total_cost)
         } else {
+            // Календарь нужен для каждой аллокации, поэтому берём его один раз
+            // и переиспользуем в цикле.
             let calendar = self
                 .container
                 .calendar(project_id)
@@ -519,9 +519,6 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             let resource_pool = self.container.resource_pool();
 
             for alloc_id in task.get_resource_allocations() {
-                let calendar = self.container.calendar(project_id).ok_or_else(|| {
-                    anyhow::anyhow!("Календарь для проекта {} не найден", project_id)
-                })?;
                 task_cost += resource_pool.calculate_allocation_cost(alloc_id, calendar)?;
             }
 
@@ -548,6 +545,8 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             }
             Ok(task_time)
         } else {
+            // Календарь нужен для каждой аллокации, поэтому берём его один раз
+            // и переиспользуем в цикле.
             let calendar = self
                 .container
                 .calendar(project_id)
@@ -558,9 +557,6 @@ impl<'a, C: ProjectContainer> TaskService<'a, C> {
             let resource_pool = self.container.resource_pool();
 
             for alloc_id in task.get_resource_allocations() {
-                let calendar = self.container.calendar(project_id).ok_or_else(|| {
-                    anyhow::anyhow!("Календарь для проекта {} не найден", project_id)
-                })?;
                 task_time += resource_pool.calculate_allocation_time(alloc_id, calendar)?;
             }
 
@@ -1071,7 +1067,7 @@ mod tests {
 
     #[test]
     fn test_add_dependency_project_not_found() -> anyhow::Result<()> {
-        let (mut container, project_id, task1_id, task2_id) = setup_two_tasks();
+        let (mut container, _, task1_id, task2_id) = setup_two_tasks();
         let mut task_service = TaskService::new(&mut container);
         let fake_project = Uuid::new_v4();
 

@@ -146,8 +146,7 @@ impl<'a, C: ProjectContainer> ResourceService<'a, C> {
 
     /// Расчет стоимости ресурса за проект
     pub fn calculate_resource_cost(&self, resource_id: Uuid, project_id: &Uuid) -> Result<f64> {
-        let resource = self
-            .container
+        self.container
             .resource_pool()
             .get_resource(&resource_id)
             .ok_or_else(|| anyhow::anyhow!("Resource with id {} not found", resource_id))?;

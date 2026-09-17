@@ -57,12 +57,6 @@ impl<'a> AllocationQueryResult<'a> {
 
         total_engagement + allocation_request.engagement_rate <= 1.0
     }
-    pub fn len(&self) -> usize {
-        self.allocations_list.len()
-    }
-    pub fn is_empty(&self) -> bool {
-        self.allocations_list.is_empty()
-    }
 }
 
 // Объект для описания назначения одного из ресурсов на задачу
@@ -112,10 +106,16 @@ pub struct LocalResourcePool {
 }
 
 impl LocalResourcePool {
+    /// Проверка «ресурс есть в пуле». Нужна только тестам: в рабочем коде та же
+    /// проверка идёт через `self.resources.get(...)` в `check_allocation_correct`.
+    #[cfg(test)]
     fn check_resource_exists(&self, resource_id: &Uuid) -> bool {
         self.resources.contains_key(resource_id)
     }
 
+    /// Поиск ресурса по имени. Нужен только тестам; если понадобится приложению —
+    /// убрать `#[cfg(test)]` и объявить метод в трейте `ResourcePool`.
+    #[cfg(test)]
     pub fn get_resource_by_name(&self, find_name: String) -> Option<&Resource> {
         self.resources.values().find(|r| r.name == find_name)
     }
@@ -264,12 +264,12 @@ impl ResourcePool for LocalResourcePool {
             .allocations
             .get(allocation_id)
             .ok_or_else(|| anyhow::anyhow!("Не найдено назначение"))?;
-        let resource = self
-            .resources
-            .get(&allocation.resource_id)
-            .ok_or_else(|| anyhow::anyhow!("Ресурс из назначения не найден!"))?;
-        // Определяем длительность работы из назначения
 
+        if self.get_resource(&allocation.resource_id).is_none() {
+            return Err(anyhow::anyhow!("Ресурс из назначения не найден!"));
+        }
+
+        // Определяем длительность работы из назначения
         let hours = allocation.time_window.duration_hours(calendar) as f64;
         Ok(hours * allocation.engagement_rate)
     }

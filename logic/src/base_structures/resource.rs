@@ -28,11 +28,19 @@ pub enum ExceptionType {
     Overtime,    // Работает сверх нормы (можно указать часы)
 }
 
+/// Доля занятости ресурса с проверкой диапазона 0.0…1.0.
+///
+/// Пока нигде не используется: `ResourceAllocation` хранит `engagement_rate: f64`
+/// напрямую, поэтому доля занятости не валидируется — например, отрицательное
+/// значение проходит проверку на перегрузку. Подключить эту проверку или удалить
+/// тип — задача из [issue #6](https://github.com/DarkwingDuck48/rsproject/issues/6).
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EngagementRate {
     engagement_rate: f64,
 }
 
+#[allow(dead_code)]
 impl EngagementRate {
     pub fn new(rate: f64) -> anyhow::Result<Self> {
         if (0.0..=1.0).contains(&rate) {

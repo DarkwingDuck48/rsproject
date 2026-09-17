@@ -1,25 +1,81 @@
+//! Планировщик: расчёт критического пути проекта методом CPM.
+//!
+//! Модуль ничего не меняет в проекте: он читает длительности задач, зависимости
+//! и дату старта, а возвращает список задач, лежащих на критическом пути.
+//! Даты задач при этом не пересчитываются — планировщик не перепланирует проект.
+//!
+//! Расчёт состоит из пяти шагов, которые собирает `Scheduler::critical_path`:
+//! построение графа задач, топологическая сортировка, прямой проход (ранние даты),
+//! обратный проход (поздние даты) и поиск самой длинной цепочки задач без запаса.
+//!
+//! Учитываются только длительности задач и лаги зависимостей, отсчитываемые от даты
+//! старта проекта. Календарь проекта (рабочие дни, праздники, часы в день) в расчёте
+//! не участвует — он применяется для трудозатрат и проверки доступности ресурсов.
+//! Дата окончания проекта на результат тоже не влияет: см.
+//! [issue #17](https://github.com/DarkwingDuck48/rsproject/issues/17).
+
 use crate::{BasicGettersForStructures, Project, ProjectContainer};
 use chrono::{DateTime, TimeDelta, Utc};
 use std::collections::{HashMap, VecDeque};
 use uuid::Uuid;
 
+/// Граф задач проекта, по которому считается критический путь.
+///
+/// Вершины — обычные задачи: сводные (групповые) задачи в граф не попадают, так как их
+/// длительность производна от дочерних задач. Рёбра направлены от предшественника
+/// к зависимой задаче: если `B` зависит от `A`, ребро идёт `A → B`.
+///
+/// Всё время здесь — календарное ([`TimeDelta`]), без учёта календаря проекта.
 #[derive(Debug, Clone, Default)]
 struct Graph {
-    predecessors: HashMap<Uuid, Vec<(Uuid, TimeDelta)>>, // Предшественник, lag
-    successors: HashMap<Uuid, Vec<(Uuid, TimeDelta)>>,   // (последователь, lag)
+    /// Задача → её предшественники и лаг каждого ребра.
+    predecessors: HashMap<Uuid, Vec<(Uuid, TimeDelta)>>,
+    /// Задача → задачи, которые от неё зависят, и лаг каждого ребра.
+    /// Заполняется как обратное к `predecessors`.
+    successors: HashMap<Uuid, Vec<(Uuid, TimeDelta)>>,
+    /// Задача → длительность. Служит и списком всех задач графа:
+    /// именно по этому полю определяются вершины.
     durations: HashMap<Uuid, TimeDelta>,
 }
 
+/// Расчёт критического пути проекта.
+///
+/// Планировщик только читает данные контейнера: он не изменяет проект и не
+/// переписывает даты задач. Зависит от трейта `ProjectContainer`,
+/// поэтому работает и с одиночным, и с будущим мультипроектным контейнером.
 #[derive(Copy, Clone, Debug)]
 pub struct Scheduler<'a, C: ProjectContainer> {
     container: &'a C,
 }
 
 impl<'a, C: ProjectContainer> Scheduler<'a, C> {
+    /// Создаёт планировщик над контейнером проектов.
     pub fn new(container: &'a C) -> Self {
         Self { container }
     }
 
+    /// Считает критический путь проекта и возвращает ID задач, лежащих на нём.
+    ///
+    /// Порядок расчёта:
+    ///
+    /// 1. `build_graph` — проект превращается в граф задач и зависимостей;
+    /// 2. `topological_sort` — задачи упорядочиваются так, что предшественники идут
+    ///    раньше зависимых задач (здесь же ловятся циклы и ссылки на несуществующие задачи);
+    /// 3. `forward_pass` — ранние даты от даты старта проекта;
+    /// 4. `backward_pass` — поздние даты;
+    /// 5. `find_critical_path` — из задач без запаса собирается самая длинная цепочка.
+    ///
+    /// Используются длительности задач и лаги зависимостей; календарь проекта
+    /// и даты, записанные в задачах, в расчёт не входят. Дата окончания проекта
+    /// на результат тоже не влияет — см.
+    /// [issue #17](https://github.com/DarkwingDuck48/rsproject/issues/17).
+    ///
+    /// Возвращает задачи критического пути по порядку следования или пустой список,
+    /// если критических задач нет.
+    ///
+    /// Ошибку возвращает, если проект не найден, если в зависимостях есть цикл,
+    /// если задача зависит от несуществующей задачи или если в проекте нет задач
+    /// (обратный проход не может определить расчётное окончание проекта).
     pub fn critical_path(&self, project_id: Uuid) -> anyhow::Result<Vec<Uuid>> {
         let project = self
             .container
@@ -27,12 +83,23 @@ impl<'a, C: ProjectContainer> Scheduler<'a, C> {
             .ok_or_else(|| anyhow::anyhow!("Project not found"))?;
         let graph = build_graph(project);
         let order = topological_sort(&graph)?;
-        let (es, ef) = forward_pass(*project.get_date_start(), &graph, &order)?;
-        let (ls, lf) = backward_pass(*project.get_date_end(), &graph, &es, &ef, &order)?;
-        find_critical_path(&graph, &es, &ef, &ls, &lf)
+        // `es` и `ls` в текущем расчёте не нужны: критического пути достаточно ранних
+        // и поздних финишей. Проходы возвращают все четыре карты — на них проверяются
+        // тесты, и они понадобятся, если в интерфейсе появятся запасы и ранние/поздние даты.
+        let (_, ef) = forward_pass(*project.get_date_start(), &graph, &order)?;
+        let (_, lf) = backward_pass(&graph, &ef, &order)?;
+        find_critical_path(&graph, &ef, &lf)
     }
 }
 
+/// Строит граф задач проекта.
+///
+/// Сводные (групповые) задачи пропускаются: их даты и длительность — производные
+/// от дочерних задач, поэтому в критическом пути они не участвуют.
+///
+/// Для каждой обычной задачи сохраняются её длительность, список предшественников
+/// с лагами и обратный список последователей. Зависимость без лага (`lag == None`)
+/// считается нулевым лагом.
 fn build_graph(project: &Project) -> Graph {
     let tasks = project.get_project_tasks();
     let mut graph = Graph::default();
@@ -65,18 +132,28 @@ fn build_graph(project: &Project) -> Graph {
     graph
 }
 
-/// Алгоритм Кана
-/// Топологическая сортировка упорядочивает вершины ориентированного ациклического графа так, что для каждого ребра (u → v) вершина u предшествует v в порядке.
-/// В нашем случае ребро направлено от предшественника к зависимой задаче (если задача B зависит от A, то ребро A → B).
-/// Для сортировки используем алгоритм Кана:
-/// Вычислить входящую степень (количество предшественников) для каждой вершины.
-/// Инициализировать очередь всеми вершинами с нулевой входящей степенью.
-/// Пока очередь не пуста:
-/// Извлечь вершину u из очереди и добавить её в результат.
-/// Для каждого последователя v вершины u:
-/// Уменьшить входящую степень v на 1.
-/// Если входящая степень v стала 0, добавить v в очередь.
-/// Если после завершения количество вершин в результате меньше общего числа вершин, граф содержит цикл — ошибка.
+/// Топологическая сортировка графа задач (алгоритм Кана).
+///
+/// Упорядочивает вершины так, что для каждого ребра `u → v` вершина `u` идёт раньше `v`.
+/// В нашем графе ребро направлено от предшественника к зависимой задаче (если `B`
+/// зависит от `A`, то ребро `A → B`), поэтому на выходе получается порядок, в котором
+/// задачи можно считать слева направо.
+///
+/// Шаги алгоритма:
+///
+/// 1. Посчитать входящую степень каждой вершины — количество предшественников.
+/// 2. Поместить в очередь все вершины с нулевой входящей степенью.
+/// 3. Пока очередь не пуста: извлечь вершину `u`, добавить её в результат, уменьшить
+///    входящую степень каждого последователя `v` и положить `v` в очередь,
+///    когда его степень станет нулём.
+/// 4. Если в результате оказалось меньше вершин, чем в графе, значит остались вершины
+///    с ненулевой степенью — граф содержит цикл.
+///
+/// Список всех задач берётся из `graph.durations` (это единственный источник истины
+/// о составе вершин).
+///
+/// Ошибку возвращает, если граф содержит цикл (в тексте перечисляются незадействованные
+/// задачи) или если задача зависит от задачи, которой нет в графе.
 fn topological_sort(graph: &Graph) -> anyhow::Result<Vec<Uuid>> {
     // Получаем все ID задач из durations (это единственный источник истины)
     let all_tasks: Vec<Uuid> = graph.durations.keys().copied().collect();
@@ -131,8 +208,22 @@ fn topological_sort(graph: &Graph) -> anyhow::Result<Vec<Uuid>> {
     Ok(order)
 }
 
+/// Результат прямого или обратного прохода: даты задач по их ID.
 type HashUuidDateTime = HashMap<Uuid, DateTime<Utc>>;
 
+/// Прямой проход: ранние даты задач — ES (early start) и EF (early finish).
+///
+/// Задачи перебираются в топологическом порядке, поэтому к моменту обработки задачи
+/// ранние финиши всех её предшественников уже посчитаны.
+///
+/// * задача без предшественников начинается в `project_start`;
+/// * для остальных `ES = max(EF(предшественника) + лаг)` по всем предшественникам;
+/// * `EF = ES + длительность`.
+///
+/// Даты считаются в календарном времени, без учёта календаря проекта.
+///
+/// Ошибку возвращает, если у задачи нет длительности или если в `ef` не нашлось
+/// предшественника — это означало бы неверный топологический порядок.
 fn forward_pass(
     project_start: DateTime<Utc>,
     graph: &Graph,
@@ -175,10 +266,24 @@ fn forward_pass(
     Ok((es, ef))
 }
 
+/// Обратный проход: поздние даты задач — LS (late start) и LF (late finish).
+///
+/// Задачи перебираются в порядке, обратном топологическому, поэтому к моменту
+/// обработки задачи поздние старты всех её последователей уже посчитаны.
+/// `max_ef` — самый поздний ранний финиш среди всех задач, то есть расчётное
+/// окончание проекта.
+///
+/// * задача без последователей: `LF = max_ef`, `LS = LF - длительность`;
+/// * для остальных: `LF = min(LS(последователя) - лаг)` по всем последователям,
+///   `LS = LF - длительность`.
+///
+/// Поздний финиш задачи без последователей берётся равным `max_ef`, а не дате окончания
+/// проекта: критический путь считается как самая длинная цепочка работ, без привязки
+/// к дедлайну. Поэтому дата окончания проекта на расчёт не влияет — она ограничивает
+/// только даты задач. Диагностика «укладывается ли план в срок» — отдельная задача, см.
+/// [issue #17](https://github.com/DarkwingDuck48/rsproject/issues/17).
 fn backward_pass(
-    project_end: DateTime<Utc>,
     graph: &Graph,
-    es: &HashMap<Uuid, DateTime<Utc>>,
     ef: &HashMap<Uuid, DateTime<Utc>>,
     order: &[Uuid],
 ) -> anyhow::Result<(HashUuidDateTime, HashUuidDateTime)> {
@@ -227,11 +332,25 @@ fn backward_pass(
     Ok((ls, lf))
 }
 
+/// Собирает критический путь из результатов прямого и обратного проходов.
+///
+/// Критической считается задача без запаса времени: `LF - EF <= EPSILON`. Допуск
+/// в миллисекунду нужен потому, что даты сравниваются как моменты времени, а не как дни.
+///
+/// Одних критических задач мало: у проекта может быть несколько параллельных веток
+/// без запаса. Поэтому дополнительно ищется **самая длинная цепочка**: обход в глубину
+/// начинается от критических задач без предшественников и продолжается по критическим
+/// последователям. Возвращается самая длинная найденная цепочка, а при равной длине — та,
+/// что найдена первой.
+///
+/// Внимание: на выходе именно цепочка, а не множество всех критических задач —
+/// при двух равных по длине критических ветках вторая в результат не попадёт.
+///
+/// Пустой список возвращается, если критических задач нет или ни одна из них
+/// не является начальной. Ошибку — если для задачи не нашлось её `lf` или `ef`.
 fn find_critical_path(
     graph: &Graph,
-    es: &HashMap<Uuid, DateTime<Utc>>,
     ef: &HashMap<Uuid, DateTime<Utc>>,
-    ls: &HashMap<Uuid, DateTime<Utc>>,
     lf: &HashMap<Uuid, DateTime<Utc>>,
 ) -> anyhow::Result<Vec<Uuid>> {
     const EPSILON: TimeDelta = TimeDelta::milliseconds(1);
@@ -525,10 +644,11 @@ mod tests {
     fn test_backward_pass_single_task() {
         let (graph, task_id) = graph_single_task();
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![task_id];
         let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        // Дата окончания проекта в обратный проход не передаётся: LF терминальных задач
+        // берётся равным max_ef, а не дате окончания проекта.
+        let (ls, lf) = backward_pass(&graph, &ef, &order).unwrap();
 
         assert_eq!(lf[&task_id], ef[&task_id]); // для одной задачи lf = ef
         assert_eq!(ls[&task_id], es[&task_id]);
@@ -538,10 +658,9 @@ mod tests {
     fn test_backward_pass_linear_zero_lag() {
         let (graph, t1, t2) = graph_two_tasks_linear(Duration::zero());
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
         let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        let (ls, lf) = backward_pass(&graph, &ef, &order).unwrap();
 
         // Ожидаем, что поздние сроки совпадают с ранними (критический путь)
         assert_eq!(lf[&t1], ef[&t1]);
@@ -555,10 +674,9 @@ mod tests {
         let lag = Duration::days(2);
         let (graph, t1, t2) = graph_two_tasks_linear(lag);
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
         let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        let (ls, lf) = backward_pass(&graph, &ef, &order).unwrap();
 
         // t2: поздний финиш = max_ef = ef[t2] (так как t2 без последователей)
         assert_eq!(lf[&t2], ef[&t2]);
@@ -576,10 +694,9 @@ mod tests {
     fn test_backward_pass_parallel() {
         let (graph, a, b, c) = graph_parallel();
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![a, b, c];
-        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
+        let (_, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (ls, lf) = backward_pass(&graph, &ef, &order).unwrap();
 
         // max_ef = ef[c]
         let max_ef = ef[&c];
@@ -603,11 +720,10 @@ mod tests {
     fn test_critical_path_single() {
         let (graph, task_id) = graph_single_task();
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![task_id];
-        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
-        let path = find_critical_path(&graph, &es, &ef, &ls, &lf).unwrap();
+        let (_, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (_, lf) = backward_pass(&graph, &ef, &order).unwrap();
+        let path = find_critical_path(&graph, &ef, &lf).unwrap();
         assert_eq!(path, vec![task_id]);
     }
 
@@ -615,11 +731,10 @@ mod tests {
     fn test_critical_path_linear() {
         let (graph, t1, t2) = graph_two_tasks_linear(TimeDelta::zero());
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![t1, t2];
-        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
-        let path = find_critical_path(&graph, &es, &ef, &ls, &lf).unwrap();
+        let (_, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (_, lf) = backward_pass(&graph, &ef, &order).unwrap();
+        let path = find_critical_path(&graph, &ef, &lf).unwrap();
         assert_eq!(path, vec![t1, t2]);
     }
 
@@ -627,11 +742,10 @@ mod tests {
     fn test_critical_path_parallel() {
         let (graph, a, b, c) = graph_parallel();
         let start = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let end = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
         let order = vec![a, b, c];
-        let (es, ef) = forward_pass(start, &graph, &order).unwrap();
-        let (ls, lf) = backward_pass(end, &graph, &es, &ef, &order).unwrap();
-        let path = find_critical_path(&graph, &es, &ef, &ls, &lf).unwrap();
+        let (_, ef) = forward_pass(start, &graph, &order).unwrap();
+        let (_, lf) = backward_pass(&graph, &ef, &order).unwrap();
+        let path = find_critical_path(&graph, &ef, &lf).unwrap();
         // Ожидаем, что критический путь b -> c (т.к. b длиннее a)
         assert_eq!(path, vec![b, c]);
     }

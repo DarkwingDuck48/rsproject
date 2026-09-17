@@ -11,7 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # clippy и rustfmt нужны для проверок ниже: в минимальном тулчейне их нет.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      # Форматирование проверяем первым — это самая дешёвая проверка,
+      # ей не нужны ни системные зависимости, ни собранный фронтенд.
+      - name: Check formatting
+        run: cargo fmt --all --check
 
       # Зависимости для сборки Tauri v2 на Linux (webkit2gtk и т.д.).
       - name: Install system dependencies
@@ -31,6 +40,12 @@ jobs:
         run: |
           npm ci
           npm run build
+
+      # Команды совпадают с чеклистом в CONTRIBUTING.md.
+      # `--all-targets` линтует и код, и тесты; фронтенд уже собран выше,
+      # потому что clippy собирает и крейт `app` (--workspace).
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - run: cargo test --workspace
       # Сборка release-бинаря строго с фичей custom-protocol: без неё
