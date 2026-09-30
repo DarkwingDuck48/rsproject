@@ -3,14 +3,14 @@ members = ["app/src-tauri", "logic", "tools"]
 resolver = '3'
 
 [workspace.package]
-version = "0.1.2"
+version = "0.1.3"
 authors = [
     "Maxim Britvin<maksbritvin@gmail.com>"
 ]
 edition = "2024"
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/DarkwingDuck48/rsproject/releases/latest"
+repository = "https://github.com/DarkwingDuck48/rsproject"
 
 [workspace.dependencies]
 serde = {version = "1.0.228", features = ["derive"]}
