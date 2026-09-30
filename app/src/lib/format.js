@@ -4,6 +4,9 @@
 
 import dayjs from "dayjs";
 
+/** Миллисекунд в дне (для расчёта длительности интервалов). */
+const DAY_MS = 86_400_000;
+
 /**
  * Форматирует дату из бэкенда (RFC 3339, напр. "2026-09-11T00:00:00Z")
  * в удобный для отображения вид "DD.MM.YYYY".
@@ -35,6 +38,23 @@ export function pluralDays(n) {
 }
 
 /**
+ * Длительность интервала [startIso, endIso] включительно, в днях.
+ * Используется для длительности критического пути (статус-бар, 5.18)
+ * и аналитики вкладки «Проект».
+ * @param {string} startIso - Начало (RFC 3339 или "YYYY-MM-DD")
+ * @param {string} endIso   - Конец (RFC 3339 или "YYYY-MM-DD")
+ * @returns {number}
+ */
+export function inclusiveDays(startIso, endIso) {
+  const [y1, m1, d1] = startIso.slice(0, 10).split("-").map(Number);
+  const [y2, m2, d2] = endIso.slice(0, 10).split("-").map(Number);
+  return (
+    Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / DAY_MS) +
+    1
+  );
+}
+
+/**
  * Форматирует JavaScript Date в "ДД.ММ.ГГГГ ЧЧ:ММ" для статус-бара (5.18).
  * На входе — локальный объект Date (в отличие от formatDate, где приходят
  * строки с бэкенда), поэтому используем dayjs в локальном часовом поясе.
@@ -44,4 +64,21 @@ export function pluralDays(n) {
 export function formatDateTime(date) {
   if (!date) return "—";
   return dayjs(date).format("DD.MM.YYYY HH:mm");
+}
+
+const RUB_FORMATTER = Intl.NumberFormat("ru-RU", {
+  style: "currency",
+  currency: "RUB",
+});
+
+/**
+ * Форматирует число в сумму в рублях ("1 234,56 ₽").
+ * ФОРМАТТЕР создаётся один раз на модуль — Intl.NumberFormat тяжёлый,
+ * на каждом рендере плодить его не стоит.
+ * @param {?number} number - Сумма от бэкенда или null/undefined.
+ * @returns {string}
+ */
+export function formatNumber(number) {
+  if (number === null || number === undefined) return "-";
+  return RUB_FORMATTER.format(number);
 }

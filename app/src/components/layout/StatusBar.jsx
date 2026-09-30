@@ -14,9 +14,8 @@ import {
   getTasks,
 } from "../../lib/api";
 import { isNoProjectError } from "../../lib/errors";
+import { criticalPathSpan } from "../../lib/analytics";
 import { formatDateTime, pluralDays } from "../../lib/format";
-
-const DAY_MS = 86_400_000;
 
 /** Количество узлов в дереве задач (задача + все дочерние). */
 function countTaskNodes(nodes) {
@@ -25,16 +24,6 @@ function countTaskNodes(nodes) {
     count += 1 + countTaskNodes(node.children ?? []);
   }
   return count;
-}
-
-/** Длительность интервала [startIso, endIso] включительно, в днях. */
-function inclusiveDays(startIso, endIso) {
-  const [y1, m1, d1] = startIso.slice(0, 10).split("-").map(Number);
-  const [y2, m2, d2] = endIso.slice(0, 10).split("-").map(Number);
-  return (
-    Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / DAY_MS) +
-    1
-  );
 }
 
 /**
@@ -83,22 +72,9 @@ export default function StatusBar({ dataVersion, lastSavedAt }) {
         let criticalDurationDays = null;
         const criticalPath = await getCriticalPath();
         if (criticalPath && criticalPath.length > 0) {
-          const tasks = await getTasks();
-          const byId = new Map(tasks.map((task) => [task.id, task]));
-          const pathTasks = criticalPath
-            .map((id) => byId.get(id))
-            .filter((task) => task && task.date_start && task.date_end);
-          if (pathTasks.length > 0) {
-            // Длительность пути — промежуток от самого раннего начала
-            // до самого позднего конца критических задач (включает лаги).
-            const start = pathTasks.reduce((a, b) =>
-              a.date_start < b.date_start ? a : b,
-            ).date_start;
-            const end = pathTasks.reduce((a, b) =>
-              a.date_end > b.date_end ? a : b,
-            ).date_end;
-            criticalDurationDays = inclusiveDays(start, end);
-          }
+          // Задачи нужны только если путь есть — тянем их лениво.
+          const span = criticalPathSpan(criticalPath, await getTasks());
+          criticalDurationDays = span?.days ?? null;
         }
 
         if (cancelled) return;

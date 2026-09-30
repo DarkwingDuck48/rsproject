@@ -100,7 +100,7 @@
  */
 
 /**
- * Информация о проекте для вкладки «Проект» (DTO `ProjectInfo` из `commands/dto.rs`).
+ * Информация о проекте для вкладки «Проект» (DTO `ProjectInfo` из `dto/project.rs`).
  * Возвращается командой `get_project_info`.
  * @typedef  {Object}       ProjectInfo
  * @property {string}       id            - UUID проекта
@@ -109,6 +109,7 @@
  * @property {string}       date_start    - Дата начала (RFC 3339, напр. "2026-09-11T00:00:00Z")
  * @property {string}       date_end      - Дата окончания (RFC 3339)
  * @property {number}       duration_days - Длительность в днях
+ * @property {number}       project_cost  - Общая стоимость проекта (сумма по задачам)
  */
 
 /**

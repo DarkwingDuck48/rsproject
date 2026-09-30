@@ -265,6 +265,45 @@ body,
     padding: 32px 0;
 }
 
+/* Вкладка «Проект»: иконка карточки проекта — акцентная, иконки фактов —
+   вторичным цветом, чтобы не перетягивать внимание с самих значений. */
+.project-view__title-icon {
+    color: var(--app-accent);
+}
+
+.project-view__fact-icon {
+    color: var(--app-text-secondary);
+}
+
+/* Аналитика вкладки «Проект»: три карточки в адаптивной сетке.
+   auto-fit + minmax — на узком окне становится один столбец,
+   на широком — два/три, без медиа-запросов (ресайзинг, 5.24). */
+.project-view__analytics {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+/* Карточки растягиваются на всю высоту ряда, внутренние блоки равны по высоте. */
+.project-view__analytics .ant-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.project-view__analytics .ant-card-body {
+    flex: 1;
+}
+
+/* Блок прогресса: полоса + подпись под ней в карточке с Statistic. */
+.project-view__analytics-progress {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 /* ─────────── StatusBar (5.18) ─────────── */
 .app-status-bar {
     grid-area: bottom;
