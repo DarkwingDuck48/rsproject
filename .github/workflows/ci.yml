@@ -3,24 +3,104 @@ name: CI
 on:
   push:
     branches: [master]
+    # CI не запускается для чисто документационных/данных изменений.
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "examples/**"
+      - ".rules"
+      - ".gitignore"
+      - ".zed/**"
+      - "LICENSE"
   pull_request:
     branches: [master]
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "examples/**"
+      - ".rules"
+      - ".gitignore"
+      - ".zed/**"
+      - "LICENSE"
+
+# Новый пуш в ту же ветку отменяет предыдущий прогон: очередь не копится,
+# а в master всегда проверяется последнее состояние.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  # Какие области кода затронуты — чтобы гонять только нужные джобы.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      workflow: ${{ steps.filter.outputs.workflow }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'logic/**'
+              - 'tools/**'
+              - 'app/src-tauri/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+            frontend:
+              - 'app/src/**'
+              - 'app/package*.json'
+              - 'app/vite.config.js'
+              - 'app/index.html'
+            workflow:
+              - '.github/workflows/**'
+
+  # Форматирование — самая дешёвая проверка: нужен только rustfmt,
+  # ни системных пакетов, ни фронтенда.
+  fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      # clippy и rustfmt нужны для проверок ниже: в минимальном тулчейне их нет.
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, rustfmt
-
-      # Форматирование проверяем первым — это самая дешёвая проверка,
-      # ей не нужны ни системные зависимости, ни собранный фронтенд.
+          components: rustfmt
       - name: Check formatting
         run: cargo fmt --all --check
+
+  # Логика и инструменты: clippy + тесты logic/tools. Не требует ни webkit-пакетов,
+  # ни сборки фронтенда — это быстрый контур обратной связи для изменений ядра.
+  logic:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.workflow == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Run clippy (logic, tools)
+        run: cargo clippy -p logic -p tools --all-targets -- -D warnings
+      - name: Run tests (logic, tools)
+        run: cargo test -p logic -p tools
+
+  # Приложение: полный цикл — системные пакеты, фронтенд, workspace clippy/test
+  # и release-сборка. Запускается при любых изменениях кода (rust или frontend)
+  # и при изменении самих workflow-файлов.
+  app:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflow == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
 
       # Зависимости для сборки Tauri v2 на Linux (webkit2gtk и т.д.).
       - name: Install system dependencies
@@ -41,13 +121,11 @@ jobs:
           npm ci
           npm run build
 
-      # Команды совпадают с чеклистом в CONTRIBUTING.md.
-      # `--all-targets` линтует и код, и тесты; фронтенд уже собран выше,
-      # потому что clippy собирает и крейт `app` (--workspace).
-      - name: Run clippy
+      - name: Run clippy (workspace)
         run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - run: cargo test --workspace
+      - name: Run tests (workspace)
+        run: cargo test --workspace
       # Сборка release-бинаря строго с фичей custom-protocol: без неё
       # cargo build выдаёт dev-версию, которая грузит devUrl вместо ассетов.
-      - run: cargo build --release -p app --features custom-protocol
+      - name: Build release binary
+        run: cargo build --release -p app --features custom-protocol
