@@ -63,23 +63,31 @@ pub enum RateMeasure {
     Monthly,
 }
 impl RateMeasure {
-    pub fn convert(&self, to_measure: RateMeasure, rate: f64) -> f64 {
-        match self {
-            RateMeasure::Daily => match to_measure {
-                RateMeasure::Daily => rate,
-                RateMeasure::Hourly => rate / 8.0,
-                RateMeasure::Monthly => rate * 22.0,
-            },
-            RateMeasure::Hourly => match to_measure {
-                RateMeasure::Hourly => rate,
-                RateMeasure::Daily => rate * 8.0,
-                RateMeasure::Monthly => rate * 22.0,
-            },
-            RateMeasure::Monthly => match to_measure {
-                RateMeasure::Daily => rate / 22.0,
-                RateMeasure::Hourly => rate / (22.0 * 8.0),
-                RateMeasure::Monthly => rate,
-            },
+    /// Конвертирует ставку из одной единицы измерения в другую.
+    ///
+    /// Единственная точка пересчёта между единицами. Вместо жёстко зашитых
+    /// констант (8 ч/день, 22 дня/месяц) использует календарь проекта:
+    /// часы в рабочем дне — `calendar.working_hours_per_day`, число рабочих дней
+    /// в месяце — `calendar.working_days_per_month`.
+    ///
+    /// Конвертация обратима: перевод в другую единицу и обратно возвращает
+    /// исходную ставку (раньше `Hourly → Monthly` давал `rate × 22`, а обратно
+    /// `rate ÷ (22 × 8)` — round-trip был необратим).
+    pub fn convert(&self, to_measure: RateMeasure, rate: f64, calendar: &ProjectCalendar) -> f64 {
+        let hours_per_day = calendar.working_hours_per_day as f64;
+        let days_per_month = calendar.working_days_per_month as f64;
+        let hours_per_month = calendar.working_hours_per_month() as f64;
+
+        match (*self, to_measure) {
+            (RateMeasure::Daily, RateMeasure::Daily) => rate,
+            (RateMeasure::Daily, RateMeasure::Hourly) => rate / hours_per_day,
+            (RateMeasure::Daily, RateMeasure::Monthly) => rate * days_per_month,
+            (RateMeasure::Hourly, RateMeasure::Daily) => rate * hours_per_day,
+            (RateMeasure::Hourly, RateMeasure::Hourly) => rate,
+            (RateMeasure::Hourly, RateMeasure::Monthly) => rate * hours_per_month,
+            (RateMeasure::Monthly, RateMeasure::Daily) => rate / days_per_month,
+            (RateMeasure::Monthly, RateMeasure::Hourly) => rate / hours_per_month,
+            (RateMeasure::Monthly, RateMeasure::Monthly) => rate,
         }
     }
 }
@@ -89,10 +97,9 @@ impl RateMeasure {
 
 // Для итогового расчета затрат будем пользоваться перечисление RateMeasure
 // При создании ресурса пользователь будет указывать какую ставку он определяет, основываясь на элементах RateMeasure.
-// Далее, при отображении данных можно будет трансформировать по формуле:
-// Hourly - будет базовой ставкой
-// Daily = Hourly * 8 (8 рабочих часов в одном дне)
-// Monthly = Daily * 22 (в среднем столько дней в рабочем месяце) = Hourly * 8 * 22
+// Далее, при отображении данных можно будет трансформировать по формуле (см. RateMeasure::convert):
+// Daily = Hourly * часов_в_дне (из календаря)
+// Monthly = Daily * средних_рабочих_дней_в_месяце (из календаря)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Resource {
     pub id: Uuid,
@@ -123,10 +130,9 @@ impl Resource {
         &self.rate
     }
 
-    // TODO: По хорошему тут должен быть расчет от TimeWindow, чтобы мы смогли сконверировать корректно
-    // в базовом варианте пока принимаем неоторые константы по дням
-    pub fn get_converted_rate(&self, to_measure: RateMeasure) -> f64 {
-        self.rate_measure.convert(to_measure, self.rate)
+    /// Переводит ставку ресурса в другую единицу измерения с учётом календаря проекта.
+    pub fn get_converted_rate(&self, to_measure: RateMeasure, calendar: &ProjectCalendar) -> f64 {
+        self.rate_measure.convert(to_measure, self.rate, calendar)
     }
     pub fn get_rate_measure(&self) -> &RateMeasure {
         &self.rate_measure

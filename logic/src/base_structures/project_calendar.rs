@@ -15,6 +15,11 @@ pub struct ProjectCalendar {
 
     /// Часов в рабочем дне (для пересчета в трудозатраты)
     pub working_hours_per_day: u32,
+
+    /// Среднее число рабочих дней в месяце (для пересчёта месячных ставок,
+    /// по умолчанию 22 = 52 недели × 5 рабочих дней ÷ 12 месяцев).
+    /// Значение настраивается при создании календаря проекта.
+    pub working_days_per_month: u32,
 }
 
 impl Default for ProjectCalendar {
@@ -30,6 +35,7 @@ impl Default for ProjectCalendar {
             working_days,
             holidays: HashSet::new(),
             working_hours_per_day: 8,
+            working_days_per_month: 22,
         }
     }
 }
@@ -40,6 +46,12 @@ impl ProjectCalendar {
             working_hours_per_day,
             ..Default::default()
         }
+    }
+
+    /// Трудозатраты «среднего рабочего месяца» в часах:
+    /// рабочие часы в дне × число рабочих дней в месяце (по умолчанию 8 × 22 = 176).
+    pub fn working_hours_per_month(&self) -> u32 {
+        self.working_hours_per_day * self.working_days_per_month
     }
 
     /// Является ли дата рабочим днем?
@@ -62,11 +74,6 @@ impl ProjectCalendar {
         }
 
         count
-    }
-
-    /// Получить трудозатраты в часах за период
-    pub fn working_hours_in_period(&self, window: &TimeWindow) -> u32 {
-        self.count_working_days(window) * self.working_hours_per_day
     }
 
     /// Добавить праздник

@@ -242,16 +242,11 @@ impl ResourcePool for LocalResourcePool {
             .get(&allocation.resource_id)
             .ok_or_else(|| anyhow::anyhow!("Ресурс из назначения не найден!"))?;
         // Определяем длительность работы из назначения
-
         let hours = allocation.time_window.duration_hours(calendar) as f64;
-        let hourly_rate = match resource.get_rate_measure() {
-            RateMeasure::Hourly => *resource.get_base_rate(),
-            RateMeasure::Daily => resource.get_base_rate() / calendar.working_hours_per_day as f64,
-            RateMeasure::Monthly => {
-                resource.get_base_rate()
-                    / calendar.working_hours_in_period(&allocation.time_window) as f64
-            }
-        };
+        // Единая календарь-зависимая конвертация: месячная ставка делится на часы
+        // в «среднем месяце» календаря, а не на часы конкретного окна, поэтому
+        // стоимость пропорциональна фактическим трудозатратам (см. `RateMeasure::convert`).
+        let hourly_rate = resource.get_converted_rate(RateMeasure::Hourly, calendar);
         Ok(hourly_rate * hours * allocation.engagement_rate)
     }
 
@@ -406,16 +401,72 @@ mod tests {
 
     #[test]
     fn test_resource_measure_converter() {
+        let calendar = ProjectCalendar::default(); // 8 ч/день, 22 дня/месяц
         let resource = Resource::new(String::from("Test"), 1000.0, RateMeasure::Hourly)
             .expect("Can't create resource");
         assert_eq!(resource.get_base_rate(), &1000.0);
         assert_eq!(
-            resource.get_converted_rate(crate::base_structures::resource::RateMeasure::Daily),
-            8000.0
+            resource.get_converted_rate(RateMeasure::Daily, &calendar),
+            8000.0 // 1000 × 8 ч/день
         );
         assert_eq!(
-            resource.get_converted_rate(crate::base_structures::resource::RateMeasure::Monthly),
-            22000.0
+            resource.get_converted_rate(RateMeasure::Monthly, &calendar),
+            176000.0 // 1000 × 8 ч/день × 22 дня/месяц
+        );
+    }
+
+    // Конвертация обратима: перевод туда и обратно возвращает исходную ставку.
+    // Раньше Hourly→Monthly делал rate×22, а Monthly→Hourly rate÷176 — round-trip
+    // не сходился (1000 → 22000 → 125). Теперь оба направления согласованы.
+    #[test]
+    fn test_rate_conversion_round_trip() {
+        let calendar = ProjectCalendar::default(); // 8 ч/день, 22 дня/месяц
+        let resource = Resource::new(String::from("Test"), 1000.0, RateMeasure::Hourly)
+            .expect("Can't create resource");
+
+        let hourly_daily = resource.get_converted_rate(RateMeasure::Daily, &calendar);
+        let daily_hourly = RateMeasure::Daily.convert(RateMeasure::Hourly, hourly_daily, &calendar);
+        assert!(
+            (daily_hourly - 1000.0).abs() < f64::EPSILON,
+            "Hourly→Daily→Hourly: 1000 → {hourly_daily} → {daily_hourly}"
+        );
+
+        let hourly_monthly = resource.get_converted_rate(RateMeasure::Monthly, &calendar);
+        let monthly_hourly =
+            RateMeasure::Monthly.convert(RateMeasure::Hourly, hourly_monthly, &calendar);
+        assert!(
+            (monthly_hourly - 1000.0).abs() < f64::EPSILON,
+            "Hourly→Monthly→Hourly: 1000 → {hourly_monthly} → {monthly_hourly}"
+        );
+
+        let daily = 800.0;
+        let daily_monthly = RateMeasure::Daily.convert(RateMeasure::Monthly, daily, &calendar);
+        let monthly_daily =
+            RateMeasure::Monthly.convert(RateMeasure::Daily, daily_monthly, &calendar);
+        assert!(
+            (monthly_daily - daily).abs() < f64::EPSILON,
+            "Daily→Monthly→Daily: {daily} → {daily_monthly} → {monthly_daily}"
+        );
+    }
+
+    // Число рабочих дней в месяце настраивается в календаре и влияет на конвертацию.
+    #[test]
+    fn test_rate_conversion_uses_custom_working_days_per_month() {
+        // По умолчанию 22 дня: 1000 ₽/ч = 176 000 ₽/мес.
+        let default_calendar = ProjectCalendar::default();
+        let resource = Resource::new(String::from("Test"), 1000.0, RateMeasure::Hourly)
+            .expect("Can't create resource");
+        assert_eq!(
+            resource.get_converted_rate(RateMeasure::Monthly, &default_calendar),
+            1000.0 * 8.0 * 22.0
+        );
+
+        // Пользователь задал свой календарь: 20 рабочих дней в месяце → дешевле за месяц.
+        let mut custom_calendar = ProjectCalendar::default();
+        custom_calendar.working_days_per_month = 20;
+        assert_eq!(
+            resource.get_converted_rate(RateMeasure::Monthly, &custom_calendar),
+            1000.0 * 8.0 * 20.0
         );
     }
 
@@ -482,5 +533,86 @@ mod tests {
 
         let two_allocations = lrp.get_resource_existing_allocations(&resource_from_lrp);
         assert_eq!(two_allocations.len(), 2);
+    }
+}
+
+// Property-based тесты пула ресурсов (задача 6.3).
+//
+// Инвариант: в любой момент времени сумма engagement всех назначений, покрывающих
+// эту точку времени, не должна превышать 1.0 — иначе ресурс перегружен. Пул
+// проверяет это при каждом назначении (см. `check_correct_timewindow`), а этот тест
+// проверяет свойство на случайных последовательностях назначений.
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use chrono::{DateTime, Duration, TimeZone, Utc};
+    use proptest::prelude::*;
+
+    /// Генерирует последовательность запросов на назначение одного ресурса:
+    /// (окно в днях от старта, длительность окна, engagement).
+    fn allocation_requests_strategy() -> impl Strategy<Value = Vec<(i64, i64, f64)>> {
+        prop::collection::vec((0i64..=30, 1i64..=10, 0.1f64..=1.0f64), 1..=8)
+    }
+
+    proptest! {
+        // Инвариант 6.3: сумма engagement по пересекающимся окнам <= 1.
+        // Принятые пулом назначения никогда не перегружают ресурс ни в один момент времени.
+        #[test]
+        fn overlapping_engagements_do_not_exceed_one(requests in allocation_requests_strategy()) {
+            let calendar = ProjectCalendar::default();
+            let resource =
+                Resource::new("R".into(), 100.0, RateMeasure::Hourly).expect("ресурс создаётся");
+            let mut pool = LocalResourcePool::default();
+            pool.add_resource(resource.clone()).unwrap();
+
+            let base = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+            let mut accepted: Vec<(TimeWindow, f64)> = Vec::new();
+
+            for (start_day, len_days, engagement) in requests {
+                let window = TimeWindow::new(
+                    base + Duration::days(start_day),
+                    base + Duration::days(start_day + len_days),
+                )
+                .unwrap();
+                let request = AllocationRequest::new(
+                    resource.id,
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    engagement,
+                    window,
+                );
+                if pool.allocate(request, &calendar).is_ok() {
+                    accepted.push((window, engagement));
+                }
+            }
+
+            // Проверяем инвариант в характерных точках: центр каждого принятого окна
+            // и все его границы. Внутри окна состав покрывающих назначений не меняется,
+            // поэтому этих точек достаточно для проверки всего континуума.
+            let mut probe_times: Vec<DateTime<Utc>> = Vec::new();
+            for (window, _) in &accepted {
+                probe_times.push(window.date_start);
+                probe_times.push(window.date_end);
+                probe_times.push(
+                    window.date_start
+                        + (window.date_end - window.date_start) / 2,
+                );
+            }
+
+            let mut sorted = probe_times.clone();
+            sorted.sort_unstable();
+            sorted.dedup();
+            for t in sorted {
+                let engagement_sum: f64 = accepted
+                    .iter()
+                    .filter(|(w, _)| w.contains(&t))
+                    .map(|(_, e)| *e)
+                    .sum();
+                prop_assert!(
+                    engagement_sum <= 1.0 + f64::EPSILON * 8.0,
+                    "в момент {t:?} сумма engagement = {engagement_sum} > 1"
+                );
+            }
+        }
     }
 }

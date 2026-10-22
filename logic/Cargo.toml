@@ -12,3 +12,7 @@ anyhow = {workspace = true}
 thiserror = {workspace = true}
 chrono = {workspace = true}
 uuid = {version = "1.20.0", features = ["v4", "serde"]}
+
+[dev-dependencies]
+# Property-based тесты (задача 6.3): проверка инвариантов на случайных данных.
+proptest = "1"

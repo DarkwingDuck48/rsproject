@@ -508,6 +508,61 @@ mod tests {
         (graph, task_a, task_b, task_c)
     }
 
+    // Проверка построения графа из реального проекта: сводные задачи пропускаются,
+    // лаги зависимостей сохраняются, обычные задачи попадают в durations.
+    #[test]
+    fn build_graph_skips_summary_tasks_and_keeps_lags() {
+        use crate::base_structures::{Dependency, DependencyType, Task};
+
+        let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+        let end = Utc.with_ymd_and_hms(2026, 12, 31, 0, 0, 0).unwrap();
+        let mut project = Project::new("Test", "desc", start, end).unwrap();
+
+        // Сводная задача — не должна попасть в граф.
+        let summary = Task::new_summary("Summary", start, end, None).unwrap();
+        let summary_id = *summary.get_id();
+        project.tasks.insert(summary_id, summary);
+
+        // Обычная задача A длительностью 5 дней.
+        let task_a = Task::new_regular("A", start, start + Duration::days(5), None).unwrap();
+        let a_id = *task_a.get_id();
+        project.tasks.insert(a_id, task_a);
+
+        // Обычная задача B, зависит от A с лагом 2 дня.
+        let task_b = Task::new_regular(
+            "B",
+            start + Duration::days(5),
+            start + Duration::days(8),
+            None,
+        )
+        .unwrap();
+        let b_id = *task_b.get_id();
+        project.tasks.insert(b_id, task_b);
+
+        // Зависимость B от A с лагом.
+        project
+            .tasks
+            .get_mut(&b_id)
+            .unwrap()
+            .add_dependency(Dependency::new(
+                DependencyType::Blocking,
+                a_id,
+                Some(Duration::days(2)),
+            ))
+            .unwrap();
+
+        let graph = build_graph(&project);
+
+        // Сводная задача пропущена, обычные — в durations с правильной длительностью.
+        assert!(!graph.durations.contains_key(&summary_id));
+        assert_eq!(graph.durations[&a_id], Duration::days(5));
+        assert_eq!(graph.durations[&b_id], Duration::days(3));
+
+        // B зависит от A: предшественник B — A, последователь A — B, лаг сохранён.
+        assert_eq!(graph.predecessors[&b_id], vec![(a_id, Duration::days(2))]);
+        assert_eq!(graph.successors[&a_id], vec![(b_id, Duration::days(2))]);
+    }
+
     #[test]
     fn test_empty_graph() {
         let graph = Graph::default(); // предполагаем, что у Graph есть impl Default
@@ -748,5 +803,168 @@ mod tests {
         let path = find_critical_path(&graph, &ef, &lf).unwrap();
         // Ожидаем, что критический путь b -> c (т.к. b длиннее a)
         assert_eq!(path, vec![b, c]);
+    }
+}
+
+// Property-based тесты планировщика (задача 6.3).
+//
+// Проверяются инварианты CPM на случайных ациклических графах:
+// * ранние даты не позже поздних (ES <= LS, EF <= LF) для каждой задачи;
+// * сумма длительностей задач на критическом пути не превосходит сумму длительностей
+//   всех задач проекта (длина пути — подмножество задач, а длительности неотрицательны);
+// * критический путь — валидная цепочка: соседние задачи связаны рёбрами графа,
+//   а запас времени каждой задачи пути равен нулю.
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use chrono::TimeZone;
+    use proptest::prelude::*;
+    use std::collections::HashSet;
+
+    /// Генерирует случайный ациклический граф задач.
+    ///
+    /// Вершины — задачи с номерами 0..n. Ребра выбираются из полного списка пар
+    /// (i, j) с i < j: такая пара по построению не образует цикл, поэтому фильтры
+    /// и повторы не нужны.
+    fn dag_strategy() -> impl Strategy<Value = (Graph, DateTime<Utc>)> {
+        (1usize..=6).prop_flat_map(|n| {
+            let node_ids: Vec<Uuid> = (0..n).map(|_| Uuid::new_v4()).collect();
+            // Все возможные пары (i, j), i < j — индексы рёбер.
+            let all_pairs: Vec<(usize, usize)> = (0..n)
+                .flat_map(|i| ((i + 1)..n).map(move |j| (i, j)))
+                .collect();
+            let pair_count = all_pairs.len();
+            let durations = prop::collection::vec(1i64..=20i64, n);
+            let edges = prop::collection::vec(
+                (0..pair_count.max(1), 0i64..=5i64), // (индекс пары, лаг в днях)
+                0..=pair_count.max(1),
+            );
+            (durations, edges).prop_map(move |(durations, edges)| {
+                let mut graph = Graph::default();
+                for (i, &d) in durations.iter().enumerate() {
+                    graph.durations.insert(node_ids[i], TimeDelta::days(d));
+                }
+
+                // Дубликаты рёбер отбрасываем, чтобы не засорять граф.
+                let mut seen = HashSet::new();
+                for (pair_idx, lag_days) in edges {
+                    if pair_idx >= pair_count || !seen.insert(pair_idx) {
+                        continue;
+                    }
+                    let (i, j) = all_pairs[pair_idx];
+                    let (from, to) = (node_ids[i], node_ids[j]);
+                    let lag = TimeDelta::days(lag_days);
+                    graph.predecessors.entry(to).or_default().push((from, lag));
+                    graph.successors.entry(from).or_default().push((to, lag));
+                }
+
+                // Старт проекта — фиксированная дата; случайность графа достигается
+                // длительностями, рёбрами и лагами.
+                let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+                (graph, start)
+            })
+        })
+    }
+
+    proptest! {
+        // Инвариант 6.3: ранние даты не позже поздних (ES <= LS, EF <= LF).
+        #[test]
+        fn early_dates_do_not_exceed_late_dates((graph, start) in dag_strategy()) {
+            let order = topological_sort(&graph).expect("граф ациклический");
+            let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+            let (ls, lf) = backward_pass(&graph, &ef, &order).unwrap();
+
+            for &id in graph.durations.keys() {
+                let es = es[&id];
+                let ls = ls[&id];
+                let ef = ef[&id];
+                let lf = lf[&id];
+                prop_assert!(
+                    es <= ls,
+                    "ES ({es:?}) должен быть <= LS ({ls:?}) для задачи {id}"
+                );
+                prop_assert!(
+                    ef <= lf,
+                    "EF ({ef:?}) должен быть <= LF ({lf:?}) для задачи {id}"
+                );
+            }
+        }
+
+        // Инвариант 6.3: сумма длительностей задач >= длины критического пути.
+        // Длина пути считается как сумма длительностей задач на нём; путь — подмножество
+        // задач проекта, поэтому его сумма не может превысить общую сумму длительностей.
+        #[test]
+        fn critical_path_duration_does_not_exceed_total_duration((graph, start) in dag_strategy()) {
+            let order = topological_sort(&graph).expect("граф ациклический");
+            let (_, ef) = forward_pass(start, &graph, &order).unwrap();
+            let (_, lf) = backward_pass(&graph, &ef, &order).unwrap();
+            let path = find_critical_path(&graph, &ef, &lf).unwrap();
+
+            let total: TimeDelta = graph.durations.values().fold(TimeDelta::zero(), |acc, d| acc + *d);
+            let path_duration: TimeDelta = path
+                .iter()
+                .fold(TimeDelta::zero(), |acc, id| acc + graph.durations[id]);
+            prop_assert!(
+                path_duration <= total,
+                "длина пути ({path_duration:?}) не должна превышать сумму длительностей ({total:?})"
+            );
+        }
+
+        // Критический путь — валидная цепочка: соседние задачи связаны рёбрами,
+        // и все задачи пути имеют нулевой запас времени.
+        #[test]
+        fn critical_path_is_a_valid_chain((graph, start) in dag_strategy()) {
+            let order = topological_sort(&graph).expect("граф ациклический");
+            let (_, ef) = forward_pass(start, &graph, &order).unwrap();
+            let (_, lf) = backward_pass(&graph, &ef, &order).unwrap();
+            let path = find_critical_path(&graph, &ef, &lf).unwrap();
+
+            prop_assert!(!path.is_empty(), "в непустом графе должен быть критический путь");
+
+            // Все задачи пути — критические: запас времени (lf - ef) равен нулю.
+            for &id in &path {
+                let slack = lf[&id] - ef[&id];
+                prop_assert!(
+                    slack <= TimeDelta::milliseconds(1) && slack >= TimeDelta::milliseconds(-1),
+                    "задача {id} на критическом пути, но запас = {slack:?}"
+                );
+            }
+
+            // Соседние задачи пути соединены ребром в графе (последовательность задач).
+            for pair in path.windows(2) {
+                let has_edge = graph.successors.get(&pair[0]).is_some_and(|succs| {
+                    succs.iter().any(|(s, _lag)| *s == pair[1])
+                });
+                prop_assert!(
+                    has_edge,
+                    "между задачами {p0:?} -> {p1:?} нет ребра в графе",
+                    p0 = pair[0],
+                    p1 = pair[1],
+                );
+            }
+        }
+
+        // Согласованность проходов: EF = ES + длительность и LF = LS + длительность
+        // для каждой задачи (базовое свойство CPM, ловит ошибки в арифметике дат).
+        #[test]
+        fn durations_are_consistent_with_dates((graph, start) in dag_strategy()) {
+            let order = topological_sort(&graph).expect("граф ациклический");
+            let (es, ef) = forward_pass(start, &graph, &order).unwrap();
+            let (ls, lf) = backward_pass(&graph, &ef, &order).unwrap();
+
+            for &id in graph.durations.keys() {
+                let duration = graph.durations[&id];
+                let ef_minus_es = ef[&id] - es[&id];
+                let lf_minus_ls = lf[&id] - ls[&id];
+                prop_assert!(
+                    ef_minus_es == duration,
+                    "EF - ES ({ef_minus_es:?}) != длительность задачи {id}"
+                );
+                prop_assert!(
+                    lf_minus_ls == duration,
+                    "LF - LS ({lf_minus_ls:?}) != длительность задачи {id}"
+                );
+            }
+        }
     }
 }

@@ -29,7 +29,8 @@
 - Сериализация: serde + serde_json
 - Дата/время: chrono 0.4
 - Идентификаторы: uuid v4
-- Обработка ошибок: anyhow, thiserror
+- Обработка ошибок: anyhow для прикладного кода; типизированные ошибки `thiserror` в `logic` (код + контекст); на границе Tauri-команд ошибки сериализуются в конверт `{code, ctx}`, а человекочитаемые переводы — на фронтенде по коду и контексту (решение 2026-10-06, стрим 7.1)
+- Тесты: `proptest` (dev-dependency `logic`, стрим 6.3) — property-based проверки инвариантов: ранние ≤ поздних дат, сумма длительностей ≥ длины критического пути, сумма engagement пересекающихся окон ≤ 1. Модули `property_tests` в `scheduler.rs` и `resource_pool.rs`
 
 ## Архитектура `logic`
 - `base_structures/` — доменные структуры:
@@ -105,7 +106,7 @@
 cargo build --release       # сборка всего workspace (Rust-часть; фронтенд НЕ собирается)
 cargo build -p logic        # сборка только logic
 cargo build -p app          # сборка только Tauri-бекенда
-cargo test                  # запуск всех тестов (логика: logic/tests/integration.rs)
+cargo test                  # запуск всех тестов (логика: юнит + property-based в src/, интеграционные в logic/tests/integration.rs)
 cargo fmt                   # форматирование кода
 cargo clippy                # линтер
 cd app && npm run dev       # запуск Vite dev-сервера (фронтенд)
